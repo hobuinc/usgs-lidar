@@ -1,0 +1,192 @@
+html {
+    position: absolute;
+    width: 100%;
+    min-height: 100%;
+}
+
+body {
+    position: absolute;
+    width: 100%;
+    min-height: 100%;
+}
+
+a:hover, a:link, a:visited, a:active {
+    text-decoration: none !important;
+}
+
+#style-wrapper {
+    padding-bottom: 16px;
+    margin-bottom: 48px;
+}
+
+#header {
+    margin-bottom: 0;
+}
+
+button:focus {
+    outline: 0 !important;
+}
+
+button.link {
+    background: none;
+    border: none;
+}
+
+#splash {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.content {
+    margin-bottom: 15px;
+}
+
+#banner {
+    margin-top: 12px;
+    margin-bottom: 4px;
+    max-height: 84px;
+    max-width: 100%;
+}
+
+.footer {
+    border-color: #e7e7e7;
+    border-top-style: solid;
+    border-top-width: 1px;
+    background-color: #f5f5f5;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 48px;
+}
+
+.footer-content {
+    margin-top: 8px;
+}
+
+#footer-icon {
+    text-align: center;
+    max-height: 30px;
+}
+
+#copyright {
+    margin-top: 8px;
+    margin-bottom: 0;
+    text-align: right;
+    color: #AAA;
+}
+
+@media (max-width:767px) {
+    #banner {
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        margin-bottom: 0;
+        text-align: center;
+    }
+
+    #navbar {
+        text-align: center;
+    }
+
+    #navbar ul {
+        margin-top: 0;
+        padding-top: 0;
+        display: inline-block;
+    }
+
+    #navbar li {
+        display: inline;
+    }
+
+    #navbar a {
+        float: left;
+    }
+
+    #navbar button {
+        float: left;
+    }
+
+    #copyright {
+        font-size: 10px;
+    }
+}
+
+@media (min-width:768px) {
+    #navbar ul {
+        padding-top: 32px;
+        padding-right: 12px;
+    }
+}
+
+#navbar li a {
+    font-size: 18px;
+}
+
+#navbar li button {
+    font-size: 18px;
+}
+
+.center-block {
+    text-align: center;
+    float: none;
+    margin: 0 auto;
+}
+
+.wobble {
+    padding-top: 0 !important;
+    -webkit-transform-origin: 50% 48.9%;
+    -moz-transform-origin: 50% 48.9%;
+    -ms-transform-origin: 50% 48.9%;
+    -o-transform-origin: 50% 48.9%;
+    transform-origin: 50% 48.9%;
+}
+
+#about-content {
+    padding-bottom: 42px;
+}
+
+#renderer-wrapper {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+
+#renderer {
+    position: absolute;
+    top: 102px;
+    bottom: 0px;
+    width: 100%;
+}
+
+#renderer .app-bar,
+#renderer .toolbar,
+#renderer .toolbar-item,
+#renderer .search-widget,
+#renderer .noUi-connect,
+::-webkit-scrollbar-thumb {
+    background-color: #39B44A !important;
+}
+
+#renderer .docker-widget .fa { padding-top: 9px; }
+#renderer .target-location { margin-bottom: 0; }
+
+.flag {
+    vertical-align: top;
+    margin-top: 4px;
+    float: right;
+    width: 18px;
+    height: 12px;
+    margin-left: 8px;
+}
+
+.table-fit {
+    margin: 0 auto;
+    float: none;
+    white-space: nowrap;
+    width: 1% !important;
+}
+
+a {
+    /*color: #4C5B87 !important;*/
+}
+
