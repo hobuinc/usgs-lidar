@@ -31,12 +31,22 @@ public dataset.
 Amazon Web Services Public Datasets Team
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. image:: https://assets.opendata.aws/img/AWS-Logo_White-Color_300x180.png
+.. image:: https://d0.awsstatic.com/logos/powered-by-aws.png
     :target: https://registry.opendata.aws
 
 The AWS Public Datasets Team supported the effort by providing processing and
 storage grants for the development of the `EPT`_ data and ongoing support by
 making access to that data publicly available.
+
+
+Hobu, Inc.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. image:: ./images/hobu-logo-2C-white.png
+    :target: https://hobu.co
+
+Connor Manning from `Hobu, Inc.`_ constructed the 3DEP EPT resources with
+cloud processing and management tools from `Hobu, Inc.`_.
 
 .. _`Connor Manning`: http://github.com/connormanning/
 .. _`Hobu, Inc.`: https://hobu.co
