@@ -91,6 +91,12 @@ var Content = React.createClass({
             <p>
                 <a href="https://www.usgs.gov/">USGS</a> LiDAR data made available by the <a href="https://aws.amazon.com/opendata/public-datasets/">AWS Public Dataset Program</a>
             </p>
+            <p>This website provides Potree and Plasio.js interfaces to the
+AWS USGS LiDAR Public Dataset. More information about this dataset
+can be found at https://registry.opendata.aws/usgs-lidar/ and
+at its GitHub page at https://github.com/hobu/usgs-lidar/
+    </p>
+
             <p>
             Provided as EPT resources created with <a href="https://entwine.io">Entwine</a>.
             </p>

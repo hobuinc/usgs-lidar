@@ -1,0 +1,50 @@
+================================================================================
+USGS 3DEP LiDAR Point Clouds
+================================================================================
+
+
+About
+--------------------------------------------------------------------------------
+
+`Connor Manning`_ from `Hobu, Inc.`_ developed `Entwine`_ and processed the data
+in the
+
+Support
+................................................................................
+
+Multiple organizations have supported the development of the USGS 3DEP LiDAR dataset.
+
+USACE CRREL
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. image:: ./images/rsgis_logo.png
+    :target: http://www.erdc.usace.army.mil/Locations/CRREL.aspx
+
+
+The US Army Corps of Engineers Remote Sensing / GIS Center of Expertise at
+`CRREL`_ sponsored the processing and development of the `AWS 3DEP Public Dataset`_
+in multiple ways. First, it sponsored the development and continuing support of `PDAL`_ and `Entwine`_
+open source software libraries, which were used to process and manage the data. Second,
+it supported the processing and management of the 3DEP data to an `Entwine Point Tiles`_
+public dataset.
+
+Amazon Web Services Public Datasets Team
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. image:: https://assets.opendata.aws/img/AWS-Logo_White-Color_300x180.png
+    :target: https://registry.opendata.aws
+
+The AWS Public Datasets Team supported the effort by providing processing and
+storage grants for the development of the `EPT`_ data and ongoing support by
+making access to that data publicly available.
+
+.. _`Connor Manning`: http://github.com/connormanning/
+.. _`Hobu, Inc.`: https://hobu.co
+.. _`Entwine`: https://entwine.io
+.. _`PDAL`: https://pdal.io
+.. _`CRREL`: https://www.erdc.usace.army.mil/Locations/CRREL.aspx
+
+.. _`Entwine Point Tiles`: https://entwine.io/entwine-point-tile.html
+.. _`EPT`: https://entwine.io/entwine-point-tile.html
+
+.. _`AWS 3DEP Public Dataset`: https://registry.opendata.aws/usgs-lidar/
