@@ -19,6 +19,7 @@ USACE CRREL
 
 .. image:: ./images/rsgis_logo.png
     :target: http://www.erdc.usace.army.mil/Locations/CRREL.aspx
+    :width: 200px
 
 
 The US Army Corps of Engineers Remote Sensing / GIS Center of Expertise at
@@ -33,6 +34,7 @@ Amazon Web Services Public Datasets Team
 
 .. image:: https://d0.awsstatic.com/logos/powered-by-aws.png
     :target: https://registry.opendata.aws
+    :width: 200px
 
 The AWS Public Datasets Team supported the effort by providing processing and
 storage grants for the development of the `EPT`_ data and ongoing support by
@@ -44,6 +46,7 @@ Hobu, Inc.
 
 .. image:: ./images/hobu-logo-2C-white.png
     :target: https://hobu.co
+    :width: 200px
 
 Connor Manning from `Hobu, Inc.`_ constructed the 3DEP EPT resources with
 cloud processing and management tools from `Hobu, Inc.`_.
