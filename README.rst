@@ -3,6 +3,9 @@ USGS 3DEP LiDAR Point Clouds
 ================================================================================
 
 
+.. contents:: Contents
+   :depth: 2
+
 Support
 --------------------------------------------------------------------------------
 
@@ -44,7 +47,7 @@ Hobu, Inc.
     :target: https://hobu.co
     :width: 200px
 
-Connor Manning from `Hobu, Inc.`_ constructed the 3DEP EPT resources with
+`Connor Manning`_ from `Hobu, Inc.`_ constructed the 3DEP EPT resources with
 cloud processing and management tools from `Hobu, Inc.`_.
 
 .. _`Connor Manning`: http://github.com/connormanning/
