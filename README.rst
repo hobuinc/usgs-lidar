@@ -3,19 +3,15 @@ USGS 3DEP LiDAR Point Clouds
 ================================================================================
 
 
-About
+Support
 --------------------------------------------------------------------------------
 
-`Connor Manning`_ from `Hobu, Inc.`_ developed `Entwine`_ and processed the data
-in the
+Thank you to the multiple organizations that have supported the development of
+the USGS 3DEP LiDAR dataset.
 
-Support
-................................................................................
-
-Multiple organizations have supported the development of the USGS 3DEP LiDAR dataset.
 
 USACE CRREL
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+................................................................................
 
 .. image:: ./images/rsgis_logo.png
     :target: http://www.erdc.usace.army.mil/Locations/CRREL.aspx
@@ -30,7 +26,7 @@ it supported the processing and management of the 3DEP data to an `Entwine Point
 public dataset.
 
 Amazon Web Services Public Datasets Team
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+................................................................................
 
 .. image:: https://d0.awsstatic.com/logos/powered-by-aws.png
     :target: https://registry.opendata.aws
@@ -42,7 +38,7 @@ making access to that data publicly available.
 
 
 Hobu, Inc.
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+................................................................................
 
 .. image:: ./images/hobu-logo-2C-white.png
     :target: https://hobu.co
