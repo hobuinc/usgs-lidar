@@ -6,6 +6,23 @@ USGS 3DEP LiDAR Point Clouds
 .. contents:: Contents
    :depth: 2
 
+Project Description
+--------------------------------------------------------------------------------
+
+Section that describes what the project is about
+
+Resource Links
+--------------------------------------------------------------------------------
+
+* `Entwine`_
+* `PDAL`_ `readers.ept`_
+* `Potree`_
+* `Plasio.js`_
+
+.. _`readers.ept`: https://pdal.io/stages/readers.ept.html
+.. _`Potree`: http://potree
+.. _`Plasio.js`: https://github.com/hobu/plasio.js
+
 Support
 --------------------------------------------------------------------------------
 
