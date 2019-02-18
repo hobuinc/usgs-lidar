@@ -76,7 +76,7 @@ var rawRoot = 's3-us-west-2.amazonaws.com/usgs-lidar-public/';
 var root = 'https://' + rawRoot;
 var agRoot = 'https://d1xx504zn7lvnb.cloudfront.net/';
 var cfRoot = 'https://d2ywgo0ycqxchv.cloudfront.net/';
-var postfix = '&m=5&cf=%5B7%5D';
+var postfix = '&m=5&cf=%5B7,49%5D';
 
 var commify = (n) => {
     var commifyInt = (n) => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
