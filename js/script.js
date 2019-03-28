@@ -27,7 +27,7 @@ var defaults = {
     edlRadius: 1.4,
     pointSize: 3,
     pointType: Potree.PointSizeType.FIXED,
-    material: Potree.PointColorType.RGB,
+    material: Potree.PointColorType.INTENSITY_GRADIENT,
     shape: Potree.PointShape.SQUARE,
     pointBudget: 3.5 * 1000 * 1000,
     intensityRange: [0, 256],
