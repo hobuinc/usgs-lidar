@@ -198,10 +198,8 @@ var set = (k, v) => {
         case 'classificationFilter': case 'cf':
             for (var i = 0; i < v.length; ++i) {
                 var c = document.getElementById('chkClassification_' + v[i]);
-                if (c) {
-                    c.checked = false;
-                    viewer.setClassificationVisibility(v[i], false);
-                }
+                if (c) c.checked = false;
+                viewer.setClassificationVisibility(v[i], false);
             }
             break;
         case 'language': case 'l': case 'lang':
