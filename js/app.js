@@ -280,7 +280,10 @@ var Resources = React.createClass({
         .setView([39.0902, -94.2871], 4);
 
         // watercolor, toner, terrain
-        var layer = new L.StamenTileLayer('terrain');
+     //   var layer = new L.StamenTileLayer('terrain');
+        var layer = L.tileLayer('https://stamen-tiles.a.ssl.fastly.net/terrain-grey-hills/{z}/{x}/{y}.jpg', {
+      opacity: 0.8
+    });
         this.map.addLayer(layer);
 
         var reproj = (v) => {
