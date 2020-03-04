@@ -103,6 +103,9 @@ var Resource = React.createClass({
             // '&c0s=remote%3A%2F%2Fimagery%3Furl%3Dhttp%253A%252F%252Fserver.arcgisonline.com%252FArcGIS%252Frest%252Fservices%252FWorld_Imagery%252FMapServer%252Ftile%252F%257B%257Bz%257D%257D%252F%257B%257By%257D%257D%252F%257B%257Bx%257D%257D.jpg';
         var link = <i className='fa fa-circle'></i>;
 
+        var ept = root + name + '/ept.json';
+        var style = { minWidth: 64 }
+
         return <tr>
             <td>
                 <a href={ potree }>
@@ -112,8 +115,9 @@ var Resource = React.createClass({
             <td className='text-right'>
                 { commify(points) }
             </td>
-            <td className='text-center'><a href={ potree }>{ link }</a></td>
-            <td className='text-center'><a href={ plasio }>{ link }</a></td>
+            <td className='text-center' style={ style }><a href={ potree }>{ link }</a></td>
+            <td className='text-center' style={ style }><a href={ plasio }>{ link }</a></td>
+            <td className='text-center' style={ style }><a href={ ept }>{ link }</a></td>
         </tr>;
     }
 });
@@ -227,6 +231,7 @@ var Resources = React.createClass({
                         </th>
                         <th className='text-center'>Potree</th>
                         <th className='text-center'>Plasio</th>
+                        <th className='text-center'>EPT</th>
                     </tr>
                 </thead>
                 <tbody>
