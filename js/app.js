@@ -98,7 +98,6 @@ var Resource = React.createClass({
 
         var potree = potreeLinkify(name);
         // '/data/view.html?r=' + root + name + postfix;
-        var plasio = plasioLinkify(name);
             // 'http://dev.speck.ly/?s=0&r=ept://' + rawRoot + name +
             // '&c0s=remote%3A%2F%2Fimagery%3Furl%3Dhttp%253A%252F%252Fserver.arcgisonline.com%252FArcGIS%252Frest%252Fservices%252FWorld_Imagery%252FMapServer%252Ftile%252F%257B%257Bz%257D%257D%252F%257B%257By%257D%257D%252F%257B%257Bx%257D%257D.jpg';
         var link = <i className='fa fa-circle'></i>;
@@ -116,7 +115,6 @@ var Resource = React.createClass({
                 { commify(points) }
             </td>
             <td className='text-center' style={ style }><a href={ potree }>{ link }</a></td>
-            <td className='text-center' style={ style }><a href={ plasio }>{ link }</a></td>
             <td className='text-center' style={ style }><a href={ ept }>{ link }</a></td>
         </tr>;
     }
@@ -230,7 +228,6 @@ var Resources = React.createClass({
                             </a>
                         </th>
                         <th className='text-center'>Potree</th>
-                        <th className='text-center'>Plasio</th>
                         <th className='text-center'>EPT</th>
                     </tr>
                 </thead>
@@ -335,8 +332,7 @@ var Resources = React.createClass({
             .bindPopup('<div>' +
                 '<strong>' + name + '</strong>' +
                 '<br>' +
-                '(<a href="' + potreeLinkify(name) + '">Potree</a>) ' +
-                '(<a href="' + plasioLinkify(name) + '">Plasio</a>)' +
+                '(<a href="' + potreeLinkify(name) + '">Potree</a>)' +
             '</div>', { });
 
             p[name] = { visible: true, polygon: polygon };
