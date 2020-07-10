@@ -1,0 +1,48 @@
+# This is a basic workflow to help you get started with Actions
+
+name: Boundaries
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  workflow_dispatch
+
+jobs:
+  conda:
+    name: Conda ${{ matrix.python-version }} - ${{ matrix.os }}
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: ['ubuntu-latest']
+        python-version: ['3.8']
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: goanpeca/setup-miniconda@v1.6.0
+      with:
+        channels: conda-forge
+        auto-update-conda: true
+        python-version: ${{ matrix.python-version }}
+    - name: Install prerequisites
+      shell: bash -l {0}
+      run: |
+          conda install -c conda-forge pdal boto3 awscli Shapely Fiona -y
+          cd action; pip install -e .
+    - name: Gather boundaries
+      shell: bash -l {0}
+      run: |
+          usgs-boundary usgs-lidar-public -v
+          mv boundaries.geojson ../boundaries
+          mv errors.json ../boundaries
+    - name: Configure Git
+      shell: bash -l {0}
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git commit -m "Update boundaries" -a
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
