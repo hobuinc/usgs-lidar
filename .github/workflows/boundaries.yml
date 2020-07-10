@@ -36,7 +36,7 @@ jobs:
           usgs-boundary usgs-lidar-public -v --resolution 1000.0 --limit 2
           ls
           pwd
-          mv boundaries.geojson ./boundaries
+          mv resources.geojson ./boundaries
           mv errors.json ./boundaries
       env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
