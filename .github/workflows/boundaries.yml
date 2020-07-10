@@ -33,9 +33,9 @@ jobs:
     - name: Gather boundaries
       shell: bash -l {0}
       run: |
-          usgs-boundary usgs-lidar-public -v --resolution 1000.0
-          mv boundaries.geojson ../boundaries
-          mv errors.json ../boundaries
+          usgs-boundary usgs-lidar-public -v --resolution 1000.0 -l 2
+          mv action/boundaries.geojson ./boundaries
+          mv action/errors.json ./boundaries
       env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
