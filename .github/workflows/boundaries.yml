@@ -34,9 +34,10 @@ jobs:
       shell: bash -l {0}
       run: |
           usgs-boundary usgs-lidar-public -v --resolution 1000.0 --limit 2
+          ls
           pwd
-          mv action/boundaries.geojson ./boundaries
-          mv action/errors.json ./boundaries
+          mv boundaries.geojson ./boundaries
+          mv errors.json ./boundaries
       env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
