@@ -29,7 +29,7 @@ jobs:
       shell: bash -l {0}
       run: |
           conda install -c conda-forge pdal boto3 awscli Shapely Fiona -y
-          cd action; pip install -e .;
+          cd action; pip install -e .
     - name: Gather boundaries
       shell: bash -l {0}
       run: |
