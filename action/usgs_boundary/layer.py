@@ -43,7 +43,7 @@ class Layer(object):
         feature =  {
             'geometry': mapping(poly),
             'properties': OrderedDict([
-             ('name', 'something'),
+             ('name', tile.key),
              ('id', self.count),
              ('url', tile.url)
             ])
