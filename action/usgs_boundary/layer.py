@@ -17,9 +17,7 @@ schema = {
 
 
 
-transformation = pyproj.Transformer.from_proj(
-    pyproj.Proj('EPSG:3857'), # source coordinate system
-    pyproj.Proj('EPSG:4326')) # destination coordinate system
+transformation = pyproj.Transformer.from_crs(3857, 4326, always_xy=True)
 
 # Will be written when self.layer.__del__ is called
 class Layer(object):
