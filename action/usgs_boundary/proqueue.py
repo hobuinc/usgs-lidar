@@ -48,7 +48,6 @@ class Task(object):
                 '--driver','readers.ept',
                 f'--readers.ept.resolution={self.resolution}',
                 f'--readers.ept.threads=6',
-                f'--filters.hexbin.edge_size=250',
                 f'--filters.hexbin.threshold=1',
                 self.url]
         logger.debug(" ".join(cargs))
