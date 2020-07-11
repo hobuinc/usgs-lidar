@@ -75,7 +75,7 @@ def info(args):
         t = Task(args.bucket, k, args.resolution)
         queue.put(t)
 
-        logger.debug(t)
+#        logger.debug(t)
 
         count += 1
 

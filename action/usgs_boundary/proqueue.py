@@ -10,8 +10,6 @@ from pathlib import Path
 import logging
 logger = logging.getLogger('usgs_boundary')
 
-
-
 def run(task):
     task.run()
     return task
@@ -53,7 +51,7 @@ class Task(object):
                 f'--filters.hexbin.edge_size=250',
                 f'--filters.hexbin.threshold=1',
                 self.url]
-        logger.info(" ".join(cargs))
+        logger.debug(" ".join(cargs))
         p = subprocess.Popen(cargs, stdin=subprocess.PIPE,
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE,
