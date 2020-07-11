@@ -3,7 +3,9 @@ import fiona
 from shapely.geometry import mapping, Polygon, MultiPolygon
 from shapely.wkt import loads
 from collections import OrderedDict
-
+from functools import partial
+import pyproj
+from shapely.ops import transform
 
 schema = {
    'geometry': 'MultiPolygon',
@@ -14,6 +16,11 @@ schema = {
    ])
  }
 
+
+transformation = partial(
+    pyproj.transform,
+    pyproj.Proj('EPSG:3857'),
+    pyproj.Proj('EPSG:4326'))
 
 # Will be written when self.layer.__del__ is called
 class Layer(object):
@@ -40,6 +47,7 @@ class Layer(object):
 
         if poly.type == 'Polygon':
             poly = MultiPolygon([poly])
+        poly = transform(transformation, poly)
         feature =  {
             'geometry': mapping(poly),
             'properties': OrderedDict([
