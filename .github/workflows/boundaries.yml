@@ -6,7 +6,7 @@ name: Boundaries
 # events but only for the master branch
 on:
     schedule:
-      - cron: "50 15 * * *"
+      - cron: "50 15 * * * "
 jobs:
   conda:
     name: Conda ${{ matrix.python-version }} - ${{ matrix.os }}
