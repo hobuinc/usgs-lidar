@@ -33,7 +33,7 @@ jobs:
     - name: Gather boundaries
       shell: bash -l {0}
       run: |
-          usgs-boundary usgs-lidar-public -v --resolution 2000.0
+          usgs-boundary usgs-lidar-public -v --resolution 800.0
           ls
           pwd
           mv resources.geojson ./boundaries
