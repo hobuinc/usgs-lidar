@@ -5,9 +5,9 @@ name: Boundaries
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the master branch
 on:
-  workflow_dispatch
-  schedule:
-    - cron: "15 50 * * *"
+    workflow_dispatch:
+    schedule:
+        - cron: "15 50 * * *"
 jobs:
   conda:
     name: Conda ${{ matrix.python-version }} - ${{ matrix.os }}
