@@ -31,6 +31,7 @@ jobs:
       shell: bash -l {0}
       run: |
           conda install -c conda-forge pdal boto3 awscli Shapely pyproj Fiona -y
+          pip install topojson
           cd action; pip install -e .
     - name: Gather boundaries
       shell: bash -l {0}
@@ -40,6 +41,7 @@ jobs:
           pwd
           mv resources.geojson ./boundaries
           mv errors.json ./boundaries
+          mv boundaries.topojson
       env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -48,6 +50,7 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
+        git add boundaries/*
         git commit -m "Update boundaries" -a
     - name: Push changes
       uses: ad-m/github-push-action@master
