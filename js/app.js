@@ -282,72 +282,37 @@ var Resources = React.createClass({
         .setView([39.0902, -94.2871], 4);
 
         // watercolor, toner, terrain
-     //   var layer = new L.StamenTileLayer('terrain');
+        //   var layer = new L.StamenTileLayer('terrain');
         var layer = L.tileLayer('https://stamen-tiles.a.ssl.fastly.net/terrain/{z}/{x}/{y}.jpg', {
-      opacity: 0.8
-    });
+            opacity: 0.8
+        });
         this.map.addLayer(layer);
 
-        var reproj = (v) => {
-            if (Array.isArray(v[0])) return v.map((a) => reproj(a));
-            else {
-                var p = new L.point(v[0], v[1]);
-                return v = L.Projection.SphericalMercator.unproject(p);
-            }
-        };
 
-        var n = Math.floor(this.props.resources.length / 50);
-        for (var i = 0; i < n; ++i) {
-            ((i) => {
-                console.log('Fetching boundaries ' + (i + 1) + ' of ' + n);
-                ajax('get', 'boundaries/' + i + '.json')
-                .then((boundaries) => this.addBoundaries(boundaries));
-            })(i);
-        }
-    },
-    addBoundaries(boundaries) {
-        var reproj = (v) => {
-            if (Array.isArray(v[0])) return v.map((a) => reproj(a));
-            else {
-                var p = new L.point(v[0], v[1]);
-                return v = L.Projection.SphericalMercator.unproject(p);
-            }
-        };
-
-        var polygons = Object.keys(boundaries).reduce((p, c, i) => {
-            var name = c;
-            var b = boundaries[name];
-
-            var color = colors[i % colors.length];
-            if (name == 'IA_FullState') color = colors[3];
-            if (name == 'MN_FullState') color = colors[6];
-            if (name == 'KY_FullState') color = colors[4];
-
-            var polygon = L.polygon(reproj(b), {
-                color: color,
+        let i = 0
+        const polygons = []
+        ajax('get', 'boundaries/resources.geojson')
+        .then(boundaries => L.geoJSON(boundaries, {
+            style: (feature) => ({
+                color: colors[i++ % colors.length],
                 weight: 2,
                 fillOpacity: .7
-            })
-            .bindTooltip('<strong>' + name + '</strong>', { sticky: true })
-            .bindPopup('<div>' +
-                '<strong>' + name + '</strong>' +
-                '<br>' +
-                '(<a href="' + potreeLinkify(name) + '">Potree</a>)' +
-            '</div>', { });
+            }),
+            onEachFeature: (feature, layer) => {
+                const name = feature.properties.name
+                layer
+                .bindTooltip('<strong>' + name + '</strong>', { sticky: true })
+                .bindPopup('<div>' +
+                    '<strong>' + name + '</strong>' +
+                    '<br>' +
+                    '(<a href="' + potreeLinkify(name) + '">Potree</a>)' +
+                '</div>', { });
 
-            p[name] = { visible: true, polygon: polygon };
-
-            return p;
-        }, { })
-
-        Object.keys(polygons).forEach((n) => polygons[n].polygon.addTo(this.map));
-
-        Object.keys(this.state.polygons).forEach((k) => {
-            polygons[k] = this.state.polygons[k];
-        });
-
-        this.setState({ polygons: polygons });
-    }
+                polygons[name] = { visible: true, polygon: layer}
+            }
+        }).addTo(this.map))
+        .then(() => this.setState({ polygons }))
+    },
 })
 
 var ajax = function(method, subpath, data) {
