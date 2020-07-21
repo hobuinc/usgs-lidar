@@ -5,7 +5,6 @@ from shapely.wkt import loads
 from collections import OrderedDict
 import pyproj
 from shapely.ops import transform
-import topojson
 
 schema = {
    'geometry': 'MultiPolygon',
@@ -60,9 +59,4 @@ class Layer(object):
         self.count += 1
 
 
-    def saveTopojson(self, filename):
-        topo = topojson.Topology(self.layer)
-        f = open(filename, 'wb')
-        f.write(topo.to_json().encode('utf-8'))
-        f.close()
 

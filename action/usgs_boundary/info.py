@@ -85,8 +85,6 @@ def info(args):
     for r in queue.results:
         l.add(r)
 
-    l.saveTopojson('boundaries.topojson')
-
     errors = []
     for r in queue.results:
         if r.error:
