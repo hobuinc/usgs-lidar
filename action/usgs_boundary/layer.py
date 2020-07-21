@@ -11,7 +11,7 @@ schema = {
    'properties': OrderedDict([
      ('name', 'str'),
      ('id', 'int'),
-     ('count', 'float'),
+     ('count', 'int64'),
      ('url', 'str')
    ])
  }
