@@ -11,6 +11,7 @@ schema = {
    'properties': OrderedDict([
      ('name', 'str'),
      ('id', 'int'),
+     ('count', 'int'),
      ('url', 'str')
    ])
  }
@@ -50,6 +51,7 @@ class Layer(object):
             'properties': OrderedDict([
              ('name', tile.key.strip('/')),
              ('id', self.count),
+             ('count', tile.num_points),
              ('url', tile.url)
             ])
          }

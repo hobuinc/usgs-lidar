@@ -37,11 +37,30 @@ class Task(object):
 
     def run (self):
         try:
+            self.count()
             self.info()
+
             self.geometry()
         except AttributeError:
             pass
 
+    def count (self):
+        cargs = ['pdal','info','--summary',
+                '--driver','readers.ept',
+                self.url]
+        logger.debug(" ".join(cargs))
+        p = subprocess.Popen(cargs, stdin=subprocess.PIPE,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
+                                    encoding='utf8')
+        ret = p.communicate()
+        if p.returncode != 0:
+            error = ret[1]
+            logger.error(cargs)
+            logger.error(error)
+            self.error = {"args":cargs, "error": error}
+            raise AttributeError(error)
+        self.num_points = int(json.loads(ret[0])['summary']['num_points'])
 
     def info (self):
         cargs = ['pdal','info','--all',
