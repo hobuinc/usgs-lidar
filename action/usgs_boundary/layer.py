@@ -46,7 +46,6 @@ class Layer(object):
         if poly.type == 'Polygon':
             poly = MultiPolygon([poly])
         poly = transform(transformation.transform, poly)
-        print("id: %s count %s" % (tile.key.strip('/'), tile.num_points))
         feature =  {
             'geometry': mapping(poly),
             'properties': OrderedDict([
