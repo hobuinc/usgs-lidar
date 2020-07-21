@@ -5,6 +5,7 @@ from shapely.wkt import loads
 from collections import OrderedDict
 import pyproj
 from shapely.ops import transform
+import topojson
 
 schema = {
    'geometry': 'MultiPolygon',
