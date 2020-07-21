@@ -43,7 +43,7 @@ class Task(object):
             self.info()
 
             self.geometry()
-        except AttributeError:
+        except AttributeError, KeyError:
             pass
 
     def count (self):
