@@ -31,7 +31,7 @@ jobs:
       shell: bash -l {0}
       run: |
           conda install -c conda-forge pdal boto3 awscli Shapely pyproj Fiona nodejs -y
-          cd action; pip install -e .
+          cd action; pip install requests; pip install -e .
           npm install -g topojson-server
     - name: Gather boundaries
       shell: bash -l {0}

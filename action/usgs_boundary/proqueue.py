@@ -9,6 +9,8 @@ import string
 from pathlib import Path
 import logging
 logger = logging.getLogger('usgs_boundary')
+import requests
+
 
 def run(task):
     task.run()
@@ -45,22 +47,8 @@ class Task(object):
             pass
 
     def count (self):
-        cargs = ['pdal','info','--summary',
-                '--driver','readers.ept',
-                self.url]
-        logger.debug(" ".join(cargs))
-        p = subprocess.Popen(cargs, stdin=subprocess.PIPE,
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE,
-                                    encoding='utf8')
-        ret = p.communicate()
-        if p.returncode != 0:
-            error = ret[1]
-            logger.error(cargs)
-            logger.error(error)
-            self.error = {"args":cargs, "error": error}
-            raise AttributeError(error)
-        self.num_points = int(json.loads(ret[0])['summary']['num_points'])
+        r = requests.get(self.url)
+        self.num_points = int(r.json()['points'])
 
     def info (self):
         cargs = ['pdal','info','--all',
