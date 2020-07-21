@@ -291,8 +291,7 @@ var Resources = React.createClass({
 
         let i = 0
         const polygons = []
-        ajax('get', 'boundaries/resources.geojson')
-        .then(boundaries => L.geoJSON(boundaries, {
+        L.geoJSON(this.props.boundaries, {
             style: (feature) => ({
                 color: colors[i++ % colors.length],
                 weight: 2,
@@ -310,8 +309,8 @@ var Resources = React.createClass({
 
                 polygons[name] = { visible: true, polygon: layer}
             }
-        }).addTo(this.map))
-        .then(() => this.setState({ polygons }))
+        }).addTo(this.map)
+        this.setState({ polygons })
     },
 })
 
@@ -331,16 +330,21 @@ var Page = React.createClass({
         return { resources: null, boundaries: null }
     },
     componentDidMount() {
-        ajax('get', 'resources.json')
-        .done((resources) => this.setState({ resources: resources }))
+        ajax('get', 'boundaries/resources.geojson')
+        .done((boundaries) => this.setState({
+            boundaries,
+            resources: boundaries.features.reduce((o, b) => [
+                ...o,
+                { name: b.properties.name, points: b.properties.count }
+            ], [])
+        }))
     },
     render() {
-        var resources = this.state.resources;
+        const { resources, boundaries } = this.state;
 
-        var contents = <i className='center-block'>Loading...</i>;
-        if (resources) {
-            contents = <Resources resources={ resources }/>;
-        }
+        var contents = resources
+            ? <Resources resources={ resources } boundaries={ boundaries }/>
+            : <i className='center-block'>Loading...</i>;
 
         return <div>
             <Header/>
