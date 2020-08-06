@@ -35,7 +35,7 @@ class Layer(object):
                  self.args.layer,
                  'w',
                  driver=output_driver,
-                 schema=schema)
+                 schema=schema, NATIVE_DATA="NO")
 
     def add(self, tile):
         if not tile.wkt:
@@ -46,6 +46,7 @@ class Layer(object):
         if poly.type == 'Polygon':
             poly = MultiPolygon([poly])
         poly = transform(transformation.transform, poly)
+        print (tile.url)
         feature =  {
             'geometry': mapping(poly),
             'properties': OrderedDict([

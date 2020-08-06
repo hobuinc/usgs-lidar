@@ -90,6 +90,15 @@ def info(args):
         if r.error:
             errors.append(r.error)
 
+    # clean up mis-escaped chars
+    f = open('resources.geojson','rb')
+    data = f.read().decode('utf-8')
+    data = data.replace('\\','')
+    f.close()
+    f = open('resources.geojson','wb')
+    f.write(data.encode('utf-8'))
+    f.close()
+
     f = open('errors.json','wb')
     f.write(json.dumps(errors).encode('utf-8'))
     f.close()
