@@ -87,6 +87,8 @@ var commify = (n) => {
 
 var potreeLinkify = (name) => '/data/view.html?r=' + root + name + postfix;
 
+var cesiumLinkify = (name) => `http://cesium.entwine.io/?url=http://usgs-3dtiles.entwine.io/${name}/ept-tileset/tileset.json`
+
 var plasioLinkify = (name) => 'http://dev.speck.ly/?s=0&r=ept://' +
     rawRoot + name + '&c0s=remote%3A%2F%2Fimagery%3Furl%3Dhttp%253A%252F%252Fserver.arcgisonline.com%252FArcGIS%252Frest%252Fservices%252FWorld_Imagery%252FMapServer%252Ftile%252F%257B%257Bz%257D%257D%252F%257B%257By%257D%257D%252F%257B%257Bx%257D%257D.jpg';
 
@@ -97,6 +99,7 @@ var Resource = React.createClass({
         var points = entry.points;
 
         var potree = potreeLinkify(name);
+        var cesium = cesiumLinkify(name);
         // '/data/view.html?r=' + root + name + postfix;
             // 'http://dev.speck.ly/?s=0&r=ept://' + rawRoot + name +
             // '&c0s=remote%3A%2F%2Fimagery%3Furl%3Dhttp%253A%252F%252Fserver.arcgisonline.com%252FArcGIS%252Frest%252Fservices%252FWorld_Imagery%252FMapServer%252Ftile%252F%257B%257Bz%257D%257D%252F%257B%257By%257D%257D%252F%257B%257Bx%257D%257D.jpg';
@@ -115,6 +118,7 @@ var Resource = React.createClass({
                 { commify(points) }
             </td>
             <td className='text-center' style={ style }><a href={ potree }>{ link }</a></td>
+            <td className='text-center' style={ style }><a href={ cesium }>{ link }</a></td>
             <td className='text-center' style={ style }><a href={ ept }>{ link }</a></td>
         </tr>;
     }
@@ -228,6 +232,7 @@ var Resources = React.createClass({
                             </a>
                         </th>
                         <th className='text-center'>Potree</th>
+                        <th className='text-center'>Cesium</th>
                         <th className='text-center'>EPT</th>
                     </tr>
                 </thead>
