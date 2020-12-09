@@ -360,6 +360,8 @@ var init = (name) => {
 
     console.log('Loading UI');
 
+    viewer.classifications[18] = { visible: false, name: 'high noise' }
+    viewer.classifications[49] = { visible: false, name: 'withheld' }
     viewer.loadGUI(() => {
         viewer.setLanguage('en');
         $("#menu_appearance").next().show();
@@ -386,7 +388,6 @@ var init = (name) => {
         active.classificationFilter.forEach((v) => {
             var c = document.getElementById('chkClassification_' + v);
             if (c) {
-                console.log('UNCHECK');
                 c.checked = false;
                 viewer.setClassificationVisibility(v, false);
             }
