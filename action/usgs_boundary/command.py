@@ -42,7 +42,7 @@ def main():
     args = parser.parse_args()
 
     args.base_url = f'https://s3-{args.region}.amazonaws.com/{args.bucket}/'
-    args.stac_base_url = f'https://s3-{args.region}.amazonaws.com/{args.stac_bucket}/'
+    args.stac_base_url = f'https://s3-{args.region}.amazonaws.com/{args.stac_bucket}/ept/'
 
     info(args)
 
