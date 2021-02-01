@@ -51,7 +51,7 @@ class Layer(object):
                            mapping(tile.poly),
                            list(tile.poly.bounds),
                            datetime.datetime.now(),
-                           {'description': 'A USGS Lidar pointcloud in entwine format'})
+                           {'description': 'A USGS Lidar pointcloud in Entwine/EPT format'})
 
         item.ext.enable(pystac.Extensions.POINTCLOUD)
 
