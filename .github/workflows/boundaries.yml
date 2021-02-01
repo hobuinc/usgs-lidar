@@ -30,7 +30,7 @@ jobs:
     - name: Install prerequisites
       shell: bash -l {0}
       run: |
-          conda install -c conda-forge pdal boto3 awscli Shapely pyproj Fiona nodejs -y
+          conda install -c conda-forge pdal boto3 awscli pystac Shapely pyproj Fiona nodejs -y
           cd action; pip install requests; pip install -e .
           npm install -g topojson-server
     - name: Gather boundaries
@@ -43,6 +43,8 @@ jobs:
           mv errors.json ./boundaries
           $CONDA_PREFIX/bin/geo2topo -o boundaries.topojson ./boundaries/resources.geojson
           mv boundaries.topojson ./boundaries
+          aws s3 sync stac_ept s3://usgs-lidar-stac --acl public-read
+
       env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
