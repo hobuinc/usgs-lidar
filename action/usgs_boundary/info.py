@@ -71,7 +71,7 @@ def info(args):
 
     catalog = pystac.Catalog('3dep',
                          'A catalog of USGS 3DEP Lidar hosted on AWS s3.',
-                         href=f'{args.stac_baseurl}catalog.json',
+                         href=f'{args.stac_base_url}catalog.json',
                          stac_extensions=['POINTCLOUD'])
 
     base = Path(args.stac_directory)
