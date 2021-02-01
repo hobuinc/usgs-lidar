@@ -47,6 +47,7 @@ setup(
     entry_points={  # Optional
         'console_scripts': [
             'usgs-boundary=usgs_boundary.command:main',
+            'usgs-stac=usgs_boundary.stac:main',
         ],
     },
 

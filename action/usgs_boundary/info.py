@@ -13,6 +13,8 @@ import boto3
 import logging
 logger = logging.getLogger('usgs_boundary')
 
+from pathlib import Path
+import pystac
 
 def read_json(filename, stdin=False):
     if stdin:
@@ -66,6 +68,15 @@ def info(args):
 
     queue = Process()
 
+
+    catalog = pystac.Catalog('3dep',
+                         'A catalog of USGS 3DEP Lidar hosted on AWS s3.',
+                         href=f'https://{args.stac_bucket}.s3.amazonaws.com/catalog.json',
+                         stac_extensions=['POINTCLOUD'])
+
+    base = Path(args.stac_directory)
+    base.mkdir(exist_ok=True, parents=True)
+
     count = 0
     for k in keys:
 
@@ -82,8 +93,18 @@ def info(args):
     queue.do(count=20)
 
     l = Layer(args)
+    stac_items = []
     for r in queue.results:
-        l.add(r)
+        if not r.error:
+            l.add(r)
+
+            with open(base / f"{r.name}.json", 'w') as f:
+                d = l.add_stac(r).to_dict()
+                json.dump(d, f)
+
+            link = pystac.Link('item', f'https://{args.stac_bucket}.s3.amazonaws.com/{r.name}.json')
+            catalog.add_link(link)
+
 
     errors = []
     for r in queue.results:
@@ -93,6 +114,10 @@ def info(args):
     f = open('errors.json','wb')
     f.write(json.dumps(errors).encode('utf-8'))
     f.close()
+
+
+    with open(base / "catalog.json", 'w') as f:
+        json.dump(catalog.to_dict(), f)
 
 
 

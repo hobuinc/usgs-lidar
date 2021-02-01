@@ -11,6 +11,19 @@ import logging
 logger = logging.getLogger('usgs_boundary')
 import requests
 
+import pyproj
+
+from shapely.geometry import mapping, Polygon, MultiPolygon
+from shapely.wkt import loads
+from shapely.ops import transform
+
+
+
+from pathlib import Path
+
+
+
+transformation = pyproj.Transformer.from_crs(3857, 4326, always_xy=True)
 
 def run(task):
     task.run()
@@ -27,28 +40,41 @@ class Task(object):
     def __init__(self, bucket, key, resolution=1000):
         self.bucket = bucket
         self.key = key
+        self.name = key.strip('/')
         self.url = f'https://s3-us-west-2.amazonaws.com/{self.bucket}/{self.key}ept.json'
         self.resolution = resolution
         self.stats = None
         self.wkt = None
         self.error = None
+        self.ept = None
+        self.poly = None
 
     def geometry(self):
         self.wkt = self.stats['boundary']['boundary']
+        self.poly = loads(self.wkt)
 
+        if self.poly.type == 'Polygon':
+            self.poly = MultiPolygon([self.poly])
+        self.poly = transform(transformation.transform, self.poly)
 
     def run (self):
         try:
             self.count()
             self.info()
-
             self.geometry()
+
         except (AttributeError, KeyError, json.decoder.JSONDecodeError):
             pass
 
     def count (self):
-        r = requests.get(self.url)
-        self.num_points = int(r.json()['points'])
+        try:
+            self.ept = requests.get(self.url).json()
+        except Exception as E:
+            logger.error(E)
+            self.error = {"tile":self.name, "error": E}
+            raise AttributeError(E)
+
+        self.num_points = int(self.ept['points'])
 
     def info (self):
         cargs = ['pdal','info','--all',

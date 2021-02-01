@@ -6,6 +6,10 @@ from collections import OrderedDict
 import pyproj
 from shapely.ops import transform
 
+import pystac
+import requests
+import datetime
+
 schema = {
    'geometry': 'MultiPolygon',
    'properties': OrderedDict([
@@ -17,6 +21,7 @@ schema = {
  }
 
 
+from pystac.extensions.pointcloud import PointcloudSchema
 
 transformation = pyproj.Transformer.from_crs(3857, 4326, always_xy=True)
 
@@ -37,19 +42,41 @@ class Layer(object):
                  driver=output_driver,
                  schema=schema)
 
+    def add_stac(self, tile):
+
+        item = pystac.Item(tile.name,
+                           mapping(tile.poly),
+                           list(tile.poly.bounds),
+                           datetime.datetime.now(),
+                           {'description': 'A USGS Lidar pointcloud in entwine format'})
+
+        item.ext.enable(pystac.Extensions.POINTCLOUD)
+
+        # icky
+        s = tile.ept['schema']
+        p = []
+        for d in s:
+            p.append(pystac.extensions.pointcloud.PointcloudSchema(d))
+
+        item.ext.pointcloud.apply(tile.num_points, 'lidar', 'ept', p, epsg='EPSG:3857')
+
+        asset = pystac.Asset(tile.url, 'entwine', 'The ept.json for accessing data')
+        item.add_asset('ept.json', asset)
+
+        item_link = pystac.Link('self', f'{self.args.stac_base_url}{tile.name}.json')
+        item_parent = pystac.Link('parent', f'{self.args.stac_base_url}catalog.json')
+        item.add_links([item_link, item_parent])
+        return item
+
     def add(self, tile):
         if not tile.wkt:
             # log this bad tile ID somewhere
             return
-        poly = loads(tile.wkt)
 
-        if poly.type == 'Polygon':
-            poly = MultiPolygon([poly])
-        poly = transform(transformation.transform, poly)
         feature =  {
-            'geometry': mapping(poly),
+            'geometry': mapping(tile.poly),
             'properties': OrderedDict([
-             ('name', tile.key.strip('/')),
+             ('name', tile.name),
              ('id', self.count),
              ('count', tile.num_points),
              ('url', tile.url)

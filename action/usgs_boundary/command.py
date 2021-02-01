@@ -28,7 +28,10 @@ def main():
 
     parser = argparse.ArgumentParser(description="Compute boundaries for USGS 3DEP EPT PDS")
     parser.add_argument("bucket", type=str, help="Bucket to index")
+    parser.add_argument("--stac_directory", default="stac_ept", type=str, help="Directory to put stac catalog")
+    parser.add_argument("--stac_bucket", type=str, help="Bucket to output STAC info", default="usgs-lidar-stac")
     parser.add_argument("--layer", type=str, default="resources.geojson", help="Output GeoJSON file")
+    parser.add_argument("--region", type=str, default="us-west-2", help="AWS region")
     parser.add_argument("--resolution", type=float, default=1000.0, help="Resolution for EPT selection")
     parser.add_argument("--limit", type=int, default=0, help="Limit processing to only this many")
     group = parser.add_mutually_exclusive_group()
@@ -38,6 +41,8 @@ def main():
 
     args = parser.parse_args()
 
+    args.base_url = f'https://s3-{args.region}.amazonaws.com/{args.bucket}/'
+    args.stac_base_url = f'https://s3-{args.region}.amazonaws.com/{args.stac_bucket}/'
 
     info(args)
 
