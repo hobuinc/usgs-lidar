@@ -16,6 +16,7 @@ import pyproj
 from shapely.geometry import mapping, Polygon, MultiPolygon
 from shapely.wkt import loads
 from shapely.ops import transform
+import shapely.errors
 
 
 
@@ -51,11 +52,16 @@ class Task(object):
 
     def geometry(self):
         self.wkt = self.stats['boundary']['boundary']
-        self.poly = loads(self.wkt)
 
-        if self.poly.type == 'Polygon':
-            self.poly = MultiPolygon([self.poly])
-        self.poly = transform(transformation.transform, self.poly)
+        try:
+            self.poly = loads(self.wkt)
+            if self.poly.type == 'Polygon':
+                self.poly = MultiPolygon([self.poly])
+            self.poly = transform(transformation.transform, self.poly)
+        except Exception as E:
+            self.error = {"error": str(E)}
+            print(f"failed to convert WKT for {self.key}", E)
+
 
     def run (self):
         try:
@@ -63,7 +69,7 @@ class Task(object):
             self.info()
             self.geometry()
 
-        except (AttributeError, KeyError, json.decoder.JSONDecodeError):
+        except (AttributeError, KeyError, json.decoder.JSONDecodeError,shapely.errors.WKTReadingError):
             pass
 
     def count (self):
@@ -71,7 +77,7 @@ class Task(object):
             self.ept = requests.get(self.url).json()
         except Exception as E:
             logger.error(E)
-            self.error = {"tile":self.name, "error": E}
+            self.error = {"tile":self.name, "error": str(E)}
             raise AttributeError(E)
 
         self.num_points = int(self.ept['points'])

@@ -44,6 +44,9 @@ class Layer(object):
 
     def add_stac(self, tile):
 
+        if not tile.poly:
+            return None
+
         item = pystac.Item(tile.name,
                            mapping(tile.poly),
                            list(tile.poly.bounds),
