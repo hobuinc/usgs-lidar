@@ -87,7 +87,13 @@ var commify = (n) => {
 
 var potreeLinkify = (name) => '/data/view.html?r=' + root + name + postfix;
 
-var cesiumLinkify = (name) => `http://cesium.entwine.io/?url=http://usgs-3dtiles.entwine.io/${name}/ept-tileset/tileset.json`
+var cesiumLinkify = (name) => {
+    // Assume that LPC data has 16-bit intensity values, and non-LPC data does
+    // not.  For this most part this should be accurate but probably not with
+    // 100% accuracy.
+    const truncateIntensity = Boolean(name.includes('LPC'))
+    return `http://cesium.entwine.io/?url=http://usgs-3dtiles.entwine.io/${name}/ept-tileset/tileset.json&dimensions=Intensity&truncate-intensity=${truncateIntensity ? 1 : 0}&z-offset=0`
+}
 
 var plasioLinkify = (name) => 'http://dev.speck.ly/?s=0&r=ept://' +
     rawRoot + name + '&c0s=remote%3A%2F%2Fimagery%3Furl%3Dhttp%253A%252F%252Fserver.arcgisonline.com%252FArcGIS%252Frest%252Fservices%252FWorld_Imagery%252FMapServer%252Ftile%252F%257B%257Bz%257D%257D%252F%257B%257By%257D%257D%252F%257B%257Bx%257D%257D.jpg';
@@ -310,6 +316,8 @@ var Resources = React.createClass({
                     '<strong>' + name + '</strong>' +
                     '<br>' +
                     '(<a href="' + potreeLinkify(name) + '">Potree</a>)' +
+                    '&nbsp;' +
+                    '(<a href="' + cesiumLinkify(name) + '">Cesium</a>)' +
                 '</div>', { });
 
                 polygons[name] = { visible: true, polygon: layer}
