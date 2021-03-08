@@ -92,7 +92,7 @@ var cesiumLinkify = (name) => {
     // not.  For this most part this should be accurate but probably not with
     // 100% accuracy.
     const truncateIntensity = Boolean(name.includes('LPC'))
-    return `http://cesium.entwine.io/?url=http://usgs-3dtiles.entwine.io/${name}/ept-tileset/tileset.json&dimensions=Intensity&truncate-intensity=${truncateIntensity ? 1 : 0}&z-offset=0`
+    return `http://cesium.entwine.io/?url=http://usgs-3dtiles.entwine.io/${name}/ept-tileset/tileset.json&dimensions=Intensity&truncate-intensity=${truncateIntensity ? 1 : 0}&z-offset=25`
 }
 
 var plasioLinkify = (name) => 'http://dev.speck.ly/?s=0&r=ept://' +
