@@ -88,8 +88,11 @@ var commify = (n) => {
 var potreeLinkify = (name) => '/data/view.html?r=' + root + name + postfix;
 
 var cesiumLinkify = (name) => {
-    const truncate = Boolean(name.includes('LPC'))
-    return `http://cesium.entwine.io/?url=http://usgs-3dtiles.entwine.io/${name}/ept-tileset/tileset.json&dimensions=Intensity&truncate=${truncate ? 1 : 0}&z-offset=0`
+    // Assume that LPC data has 16-bit intensity values, and non-LPC data does
+    // not.  For this most part this should be accurate but probably not with
+    // 100% accuracy.
+    const truncateIntensity = Boolean(name.includes('LPC'))
+    return `http://cesium.entwine.io/?url=http://usgs-3dtiles.entwine.io/${name}/ept-tileset/tileset.json&dimensions=Intensity&truncate-intensity=${truncateIntensity ? 1 : 0}&z-offset=0`
 }
 
 var plasioLinkify = (name) => 'http://dev.speck.ly/?s=0&r=ept://' +
