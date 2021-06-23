@@ -153,7 +153,8 @@ var Resources = React.createClass({
             ? (a, b) => a < b
             : (a, b) => a > b;
 
-        var re = new RegExp(this.state.text, 'i');
+        const flags = this.state.text.match(/[A-Z]/) ? '' : 'i'
+        var re = new RegExp(this.state.text, flags);
         var resources = this.props.resources.filter((r) => r.name.match(re))
         .sort((a, b) => {
             if (this.state.sortCol == Column.Name) {
