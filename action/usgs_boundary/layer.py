@@ -21,9 +21,23 @@ schema = {
  }
 
 
-from pystac.extensions.pointcloud import Schema as PointcloudSchema
+from pystac.extensions.projection import ProjectionExtension
+
+from pystac.extensions.pointcloud import (
+    AssetPointcloudExtension,
+    PhenomenologyType,
+    PointcloudExtension,
+    Schema,
+    SchemaType,
+    Statistic,
+)
 
 transformation = pyproj.Transformer.from_crs(3857, 4326, always_xy=True)
+
+from pyproj import CRS
+crs = CRS.from_epsg(3857)
+import json
+PROJJSON = json.loads(crs.to_json())
 
 # Will be written when self.layer.__del__ is called
 class Layer(object):
@@ -53,15 +67,30 @@ class Layer(object):
                            datetime.datetime.now(),
                            {'description': 'A USGS Lidar pointcloud in Entwine/EPT format'})
 
-        item.ext.enable(pystac.Extensions.POINTCLOUD)
+        #item.ext.enable(pystac.Extensions.POINTCLOUD)
 
         # icky
         s = tile.ept['schema']
         p = []
         for d in s:
-            p.append(pystac.extensions.pointcloud.PointcloudSchema(d))
+            p.append(Schema(d))
 
-        item.ext.pointcloud.apply(tile.num_points, 'lidar', 'ept', p, epsg='EPSG:3857')
+
+        PointcloudExtension.add_to(item)
+        PointcloudExtension.ext(item).apply(
+            tile.num_points,
+            PhenomenologyType.LIDAR,
+            "ept",
+            p,
+        )
+
+        ProjectionExtension.add_to(item)
+        ProjectionExtension.ext(item).apply(
+            3857,
+            projjson=PROJJSON
+        )
+
+#        item.ext.pointcloud.apply(tile.num_points, 'lidar', 'ept', p, epsg='EPSG:3857')
 
         asset = pystac.Asset(tile.url, 'entwine', 'The ept.json for accessing data')
         item.add_asset('ept.json', asset)
