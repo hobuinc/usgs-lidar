@@ -21,7 +21,7 @@ schema = {
  }
 
 
-from pystac.extensions.pointcloud import PointcloudSchema
+from pystac.extensions.pointcloud import Schema as PointcloudSchema
 
 transformation = pyproj.Transformer.from_crs(3857, 4326, always_xy=True)
 
