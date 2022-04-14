@@ -91,8 +91,16 @@ var cesiumLinkify = (name) => {
     // Assume that LPC data has 16-bit intensity values, and non-LPC data does
     // not.  For this most part this should be accurate but probably not with
     // 100% accuracy.
-    const truncateIntensity = Boolean(name.includes('LPC'))
-    return `http://cesium.entwine.io/?url=http://usgs-3dtiles.entwine.io/${name}/ept-tileset/tileset.json&dimensions=Intensity&truncate-intensity=${truncateIntensity ? 1 : 0}&z-offset=25`
+    const options = btoa(JSON.stringify({
+        color: 'intensity',
+        ranges: [{ id: 'intensity', range: [0, name.includes('LPC') ? 65535 : 255] }],
+        filters: [
+            { id: 'classification', conditionId: 'low-noise' },
+            { id: 'classification', conditionId: 'high-noise' },
+            { id: 'classification', conditionId: 'withheld' },
+        ]
+    }))
+    return `https://viewer.copc.io?resources=${root}${name}/ept.json&options=${options}`
 }
 
 var plasioLinkify = (name) => 'http://dev.speck.ly/?s=0&r=ept://' +
