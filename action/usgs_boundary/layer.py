@@ -73,6 +73,9 @@ class Layer(object):
         s = tile.ept['schema']
         p = []
         for d in s:
+            # change 'float' to 'floating' to fit pointcloud stac schema
+            if d['type'] == 'float':
+                d['type'] = 'floating'
             p.append(Schema(d))
 
 
