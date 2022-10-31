@@ -34,7 +34,8 @@ setup(
     #
     # For an analysis of "install_requires" vs pip's requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['gdal','boto3', 'Shapely', 'Fiona','pyproj'],  # Optional
+    # need pdal installed for command.py to run correctly
+    install_requires=['gdal','boto3', 'Shapely', 'Fiona','pyproj', 'pystac'],  # Optional
 
 
     # To provide executable scripts, use entry points in preference to the
@@ -47,7 +48,7 @@ setup(
     entry_points={  # Optional
         'console_scripts': [
             'usgs-boundary=usgs_boundary.command:main',
-            'usgs-stac=usgs_boundary.stac:main',
+            # 'usgs-stac=usgs_boundary.stac:main',
         ],
     },
 
