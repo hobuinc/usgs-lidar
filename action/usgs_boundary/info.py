@@ -101,7 +101,6 @@ def info(args):
 
             with open(base / f"{r.name}.json", 'w') as f:
                 i = l.add_stac(r)
-                print(i.id)
                 item_list.append(i)
                 d = i.to_dict()
                 json.dump(d, f)
