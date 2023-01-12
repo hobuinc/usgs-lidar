@@ -93,18 +93,21 @@ def info(args):
     queue.do(count=20)
 
     l = Layer(args)
-    stac_items = []
+    item_list = []
     for r in queue.results:
         if not r.error:
+
             l.add(r)
 
             with open(base / f"{r.name}.json", 'w') as f:
-                d = l.add_stac(r).to_dict()
+                i = l.add_stac(r)
+                item_list.append(i)
+                d = i.to_dict()
                 json.dump(d, f)
 
             link = pystac.Link('item', f'{args.stac_base_url}{r.name}.json')
             catalog.add_link(link)
-
+    item_collection = pystac.ItemCollection(items=item_list)
 
     errors = []
     for r in queue.results:
@@ -118,6 +121,10 @@ def info(args):
 
     with open(base / "catalog.json", 'w') as f:
         json.dump(catalog.to_dict(), f)
+
+    with open(base / "item_collection.json", 'w') as f:
+        json.dump(item_collection.to_dict(), f)
+    # write item_collection.json
 
 
 
