@@ -194,7 +194,7 @@ def noaa_info(output_dir: str) -> ItemCollection:
     trn = pyproj.Transformer.from_crs(src_crs, dst_crs, always_xy=True)
 
     item_list: List[Item] = [ ]
-    catalog = Catalog(id = 'NOAA STAC', description='', catalog_type=CatalogType.SELF_CONTAINED)
+    catalog = Catalog(id = 'NOAA STAC', description='NOAA STAC Catalog of Lidar Items', catalog_type=CatalogType.SELF_CONTAINED)
     catalog.set_self_href(path.join(output_dir, 'catalog.json'))
 
     features = resources['features']
@@ -213,8 +213,9 @@ def noaa_info(output_dir: str) -> ItemCollection:
                 item_list.append(item)
 
                 output_path = path.join(output_dir, f'{name}.json')
-                item.set_self_href(output_path)
-                item_link = Link(rel=RelType.ITEM, target=output_path)
+                item_href = f'{name}.json'
+                item.set_self_href(item_href)
+                item_link = Link(rel=RelType.ITEM, target=item_href)
                 catalog.add_link(item_link)
 
                 # Write out Item
