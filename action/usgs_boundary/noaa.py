@@ -1,23 +1,20 @@
-import sys
-import io
 import json
 import pyproj
 import datetime
-from os import path, makedirs
-
 import xml.etree.ElementTree as ET
 
+from os import path, makedirs
 from urllib import request
 from typing import List
 
-from pystac import ItemCollection, Item, Link, Asset
+from pystac import ItemCollection, Item, Link, Asset, Catalog, CatalogType, RelType
 from pystac.extensions.pointcloud import PointcloudExtension, Schema
 from pystac.extensions.projection import ProjectionExtension
 
 from shapely.ops import transform
 from shapely.geometry import shape, mapping
 
-def get_json_info(href):
+def get_json_info(href: str):
     try:
         contents = request.urlopen(href).read()
     except:
@@ -25,7 +22,7 @@ def get_json_info(href):
     json_info = json.loads(contents)
     return json_info
 
-def parse_metadata(href):
+def parse_metadata(href: str):
     metadata_info = {}
     metadata_path = path.join(href, 'inport-xml')
     try:
@@ -63,8 +60,9 @@ def parse_metadata(href):
             try:
                 metadata_info['support_roles'].append(
                     {
-                        'rel': sr.find('contact-url').text,
-                        'title': sr.find('support-role-type').text
+                        'href': sr.find('contact-url').text,
+                        'title': sr.find('support-role-type').text,
+                        'name': sr.find('contact-name').text
                     }
                 )
             except AttributeError:
@@ -72,7 +70,7 @@ def parse_metadata(href):
 
     return metadata_info
 
-def make_datetime(date_string):
+def make_datetime(date_string: str) -> datetime.datetime:
     if len(date_string)== 4:
         return datetime.datetime.strptime(date_string, '%Y')
     elif len(date_string) == 7:
@@ -80,11 +78,15 @@ def make_datetime(date_string):
     else:
         return datetime.datetime.strptime(date_string, '%Y-%m-%d')
 
-def make_datetime_str(date_string):
+def make_datetime_str(date_string) -> str:
     return make_datetime(date_string).isoformat() + "Z"
 
 
-def process_one(feature, src_crs, dst_crs, trn):
+def process_one(
+        feature: dict,
+        src_crs: pyproj.CRS,
+        dst_crs: pyproj.CRS,
+        trn: pyproj.Transformer) -> Item:
     properties = feature['properties']
     name = properties['Name']
 
@@ -176,11 +178,15 @@ def process_one(feature, src_crs, dst_crs, trn):
         media_type='application/json',
         roles=['data']
     )
+    if 'support_roles' in metadata:
+        for link in metadata['support_roles']:
+            l = Link(rel=link['title'], target=link['href'], title=link['name'])
+            item.add_link(l)
     item.add_asset('ept', asset)
     return item
 
 
-def noaa_info():
+def noaa_info(output_dir: str) -> ItemCollection:
     noaa_url = f'https://noaa-nos-coastal-lidar-pds.s3.us-east-1.amazonaws.com/laz/dav.json'
 
     resources = get_json_info(noaa_url)
@@ -189,39 +195,62 @@ def noaa_info():
     trn = pyproj.Transformer.from_crs(src_crs, dst_crs, always_xy=True)
 
     item_list: List[Item] = [ ]
+    catalog = Catalog(id = 'NOAA STAC', description='', catalog_type=CatalogType.SELF_CONTAINED)
+    catalog.set_self_href(path.join(output_dir, 'catalog.json'))
 
     for feature in resources['features']:
         data_type = feature['properties']['DataType']
-
+        name = feature['properties']['Name'].replace("/", "_")
         # Only currently handling lidar data type
         if data_type == 'Lidar':
             item = process_one(feature, src_crs, dst_crs, trn)
-        if item:
-            item_list.append(item)
 
-    return ItemCollection(item_list)
+        if item:
+            try:
+                item.validate()
+                item_list.append(item)
+
+                output_path = path.join(output_dir, f'{name}.json')
+                item.set_self_href(output_path)
+                item_link = Link(rel=RelType.ITEM, target=output_path)
+                catalog.add_link(item_link)
+
+                # Write out Item
+                with open(output_path, 'w') as output_file:
+                    output_file.write(json.dumps(item.to_dict(), indent=2))
+            except Exception as e:
+                error_path = path.join(output_dir, 'errors')
+                if not path.exists(error_path):
+                    makedirs(error_path)
+                error_file = path.join(error_path, name)
+                with open(error_file, 'w') as error_out:
+                    error_out.write(str(e))
+
+    # Write out catalog
+    catalog_path = path.join(output_dir, 'catalog.json')
+    with open(catalog_path) as cat_file:
+        cat_file.write(json.dumps(catalog.to_dict(), indent=2))
+
+    # Write out item collection
+    item_collection_path = path.join(output_dir, 'noaa_item_collection.json')
+    ic = ItemCollection(item_list)
+    with open(item_collection_path) as ic_file:
+        ic_file.write(json.dumps(ic.to_dict(), indent=2))
 
 
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser(description="Compute boundaries for USGS 3DEP EPT PDS")
-    parser.add_argument("--stac_directory", default="stac_ept", type=str, help="Directory to put stac catalog")
-    parser.add_argument("--stac_bucket", type=str, help="Bucket to output STAC info", default="usgs-lidar-stac")
-    parser.add_argument("--region", type=str, default="us-west-2", help="AWS region")
-
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--stac_directory", default="noaa_stac", type=str, help="Directory to put stac catalog")
 
     args = parser.parse_args()
 
-    stac_output_url = f'https://s3-{args.region}.amazonaws.com/{args.stac_bucket}/noaa/'
+    print(f"Writing out to {args.stac_directory}")
 
-    item_collection = noaa_info()
-    if args.stac_directory:
-        if not path.exists(args.stac_directory):
-            makedirs(args.stac_directory)
-        with open(path.join(args.stac_directory, 'noaa_item_collection.json'), 'w') as out_file:
-            print("Writing out to ", path.join(args.stac_directory, 'noaa_item_collection.json'))
-            out_file.write(json.dumps(item_collection.to_dict()))
+    if not path.exists(args.stac_directory):
+        makedirs(args.stac_directory)
 
+    noaa_info(args.stac_directory)
 
 main()
