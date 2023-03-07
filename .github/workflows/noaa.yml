@@ -1,9 +1,5 @@
-# This is a basic workflow to help you get started with Actions
-
 name: NOAA STAC
 
-# Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the master branch
 on:
     workflow_dispatch:
     schedule:
@@ -22,26 +18,20 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - uses: conda-incubator/setup-miniconda@v2
+    - uses: actions/setup-python@v4
       with:
-        channels: conda-forge
-        auto-update-conda: true
-        python-version: ${{ matrix.python-version }}
-        path: usgs-lidar
+        python-version: '3.9'
     - name: Install prerequisites
       shell: bash -l {0}
       run: |
-          conda config --add channels conda-forge
-          conda install -c conda-forge pdal pystac Shapely pyproj Fiona nodejs -y
-          cd action; pip install requests boto3 awscli; pip install -e .
-          npm install -g topojson-server
+        pip install 'pystac[validation]' pyproj shapely
     - name: Create NOAA STAC
       shell: bash -l {0}
       working-directory: action/usgs_boundary
       run: |
         python noaa.py
         ls noaa_stac/
-
-      # env:
-      #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws s3 sync noaa_stac s3://usgs-lidar-stac/noaa/ -acl public-read
+      env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

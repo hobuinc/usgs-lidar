@@ -134,7 +134,6 @@ def process_one(
 
 
     if not ept_data:
-        print(f'Missing data for {name}')
         return { }
 
     # construct initial item
@@ -198,7 +197,10 @@ def noaa_info(output_dir: str) -> ItemCollection:
     catalog = Catalog(id = 'NOAA STAC', description='', catalog_type=CatalogType.SELF_CONTAINED)
     catalog.set_self_href(path.join(output_dir, 'catalog.json'))
 
-    for feature in resources['features']:
+    features = resources['features']
+    full_count = len(features)
+
+    for index, feature in enumerate(features):
         data_type = feature['properties']['DataType']
         name = feature['properties']['Name'].replace("/", "_")
         # Only currently handling lidar data type
@@ -225,16 +227,17 @@ def noaa_info(output_dir: str) -> ItemCollection:
                 error_file = path.join(error_path, name)
                 with open(error_file, 'w') as error_out:
                     error_out.write(str(e))
+        print(f'{index}/{full_count} done.')
 
     # Write out catalog
     catalog_path = path.join(output_dir, 'catalog.json')
-    with open(catalog_path) as cat_file:
+    with open(catalog_path, 'w') as cat_file:
         cat_file.write(json.dumps(catalog.to_dict(), indent=2))
 
     # Write out item collection
     item_collection_path = path.join(output_dir, 'noaa_item_collection.json')
     ic = ItemCollection(item_list)
-    with open(item_collection_path) as ic_file:
+    with open(item_collection_path, 'w') as ic_file:
         ic_file.write(json.dumps(ic.to_dict(), indent=2))
 
 
