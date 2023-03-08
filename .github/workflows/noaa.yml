@@ -31,7 +31,7 @@ jobs:
       run: |
         python noaa.py
         ls noaa_stac/
-        aws s3 sync noaa_stac s3://usgs-lidar-stac/noaa/ -acl public-read
+        aws s3 sync noaa_stac s3://usgs-lidar-stac/noaa/ --acl public-read
       env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
