@@ -204,8 +204,11 @@ def noaa_info(output_dir: str) -> ItemCollection:
         data_type = feature['properties']['DataType']
         name = feature['properties']['Name'].replace("/", "_")
         # Only currently handling lidar data type
+        item = { }
         if data_type == 'Lidar':
             item = process_one(feature, src_crs, dst_crs, trn)
+        else:
+            continue
 
         if item:
             try:
