@@ -24,14 +24,19 @@ jobs:
     - name: Install prerequisites
       shell: bash -l {0}
       run: |
-        pip install 'pystac[validation]' pyproj shapely
+        pip install 'pystac[validation]' pyproj shapely boto3
     - name: Create NOAA STAC
       shell: bash -l {0}
       working-directory: action/usgs_boundary
       run: |
         python noaa.py
         ls noaa_stac/
+<<<<<<< HEAD
+        aws s3 sync noaa_stac s3://usgs-lidar-stac/noaa/ --debug --acl public-read
+=======
         aws s3 sync noaa_stac s3://usgs-lidar-stac/noaa/ --acl public-read --region us-west-2
+>>>>>>> origin/master
       env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: 'us-west-2'
