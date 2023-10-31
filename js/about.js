@@ -108,7 +108,7 @@ var Credits = React.createClass({
     render() {
         return <div className='center-block lead row'>
             <p>
-                Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://www.openstreetmap.org/copyright">ODbL</a>.
+                Map tiles by <a href="http://stamen.com">Stamen Design</a> and <a href="https://stadiamaps.com">Stadia Maps</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://www.openstreetmap.org/copyright">ODbL</a>.
             </p>
         </div>;
     }
