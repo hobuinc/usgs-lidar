@@ -3,6 +3,7 @@
 import sys
 import io
 import json
+from urllib.request import urlopen
 from .proqueue import Process, Task, Command
 
 from .layer import Layer
@@ -19,6 +20,8 @@ import pystac
 def read_json(filename, stdin=False):
     if stdin:
         buffer = sys.stdin.buffer
+    elif 'https://' in filename:
+        buffer = urlopen(filename)
     else:
         buffer = open(filename, 'rb')
 
@@ -69,13 +72,16 @@ def info(args):
     queue = Process()
 
 
+    cat_url = Path(args.stac_base_url, 'catalog.json')
     catalog = pystac.Catalog('3dep',
                          'A catalog of USGS 3DEP Lidar hosted on AWS s3.',
-                         href=f'{args.stac_base_url}catalog.json',
+                         href=f'{str(cat_url)}',
                          stac_extensions=['POINTCLOUD'])
 
     base = Path(args.stac_directory)
     base.mkdir(exist_ok=True, parents=True)
+
+    metadata = read_json(args.wesm_url)
 
     count = 0
     for k in keys:
@@ -100,7 +106,7 @@ def info(args):
             l.add(r)
 
             with open(base / f"{r.name}.json", 'w') as f:
-                i = l.add_stac(r)
+                i = l.add_stac(r, metadata)
                 item_list.append(i)
                 d = i.to_dict()
                 json.dump(d, f)

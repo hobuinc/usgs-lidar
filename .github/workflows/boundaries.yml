@@ -31,7 +31,7 @@ jobs:
       shell: bash -l {0}
       run: |
           conda config --add channels conda-forge
-          conda install -c conda-forge pdal pystac Shapely pyproj Fiona nodejs -y
+          conda install -c conda-forge pdal=2.7 pystac Shapely pyproj Fiona nodejs -y
           cd action; pip install requests boto3 awscli; pip install -e .
           npm install -g topojson-server
     - name: Gather boundaries

@@ -56,7 +56,7 @@ class Layer(object):
                  driver=output_driver,
                  schema=schema)
 
-    def add_stac(self, tile):
+    def add_stac(self, tile, wesm_meta):
 
         if not tile.poly:
             return None
