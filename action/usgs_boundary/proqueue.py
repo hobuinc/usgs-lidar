@@ -55,7 +55,7 @@ class Task(object):
 
         try:
             self.poly = loads(self.wkt)
-            if self.poly.type == 'Polygon':
+            if self.poly.geom_type == 'Polygon':
                 self.poly = MultiPolygon([self.poly])
             self.poly = transform(transformation.transform, self.poly)
         except Exception as E:
