@@ -81,22 +81,31 @@ def info(args):
     base = Path(args.stac_directory)
     base.mkdir(exist_ok=True, parents=True)
 
+    # grab and filter metadata
     metadata = read_json(args.wesm_url)
+    s3_keys = set(k[:-1].upper() if k.endswith('/') else k.upper() for k in keys)
+    meta_keys = list(set(metadata.keys()).intersection(s3_keys))
+    metadata = {k: metadata[k] for k in meta_keys}
 
-    count = 0
-    for k in keys:
+    for count, k in enumerate(keys):
 
         if count == args.limit and count != 0:
             break
 
-        t = Task(args.bucket, k, args.resolution)
+        try:
+            mk = k.upper()
+            if mk.endswith('/'):
+                mk = mk[:-1]
+            m = metadata[mk]
+        except KeyError as e:
+            m = None
+
+        t = Task(args.bucket, k, args.resolution, m)
         queue.put(t)
 
 #        logger.debug(t)
 
-        count += 1
-
-    queue.do(count=20)
+    queue.do(count=1)
 
     l = Layer(args)
     item_list = []
@@ -104,9 +113,9 @@ def info(args):
         if not r.error:
 
             l.add(r)
+            i = r.stac_item
 
             with open(base / f"{r.name}.json", 'w') as f:
-                i = l.add_stac(r, metadata)
                 item_list.append(i)
                 d = i.to_dict()
                 json.dump(d, f)
