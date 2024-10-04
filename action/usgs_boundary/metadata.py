@@ -1,50 +1,93 @@
 import json
 import logging
+import sys
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Tuple
+from dataclasses import dataclass
 
 import requests
 from html.parser import HTMLParser
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
+from pathlib import Path
+
 
 import subprocess
-import dask.bag as db
 import pystac
 import pyproj
 import shapely.wkt
 import shapely
+import dask.bag as db
+import logging
+from dask.diagnostics import ProgressBar
+
 from pystac.extensions.projection import ProjectionExtension
-from pystac.extensions.pointcloud import PointcloudExtension
+from pystac.extensions.pointcloud import PointcloudExtension, Schema, Statistic
 
 from .info import read_json
 
 logger = logging.getLogger('wesm_stac')
+# create console handler and set level to debug
+ch = logging.StreamHandler(stream=sys.stdout)
+
+# create formatter
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# add formatter to ch
+ch.setFormatter(formatter)
+# add ch to logger
+logger.addHandler(ch)
+logger.setLevel(logging.INFO)
+
+# date collected
+# WESM Docs say it should be YYYY-MM-DD (isoformat), but I'm also seeing
+# YYYY/MM/DD, which is not isoformat so we're covering both.
+def get_date(d:str) -> datetime:
+    try:
+        dt = datetime.isoformat(d)
+    except:
+        try:
+            dt = datetime.strptime(d, '%Y/%m/%d')
+        except Exception as e:
+            raise ValueError(f'Invalid datetime ({d}).', e)
+    return dt.strftime('%Y-%m-%dT%H:%M:%SZ')
 
 class MetaCatalog:
     """
     MetaCatalog reads the WESM JSON file at the given url, and creates a list of
     MetaCollections. Dask Bag helps facilitate the mapping of this in parallel.
     """
-    def __init__(self, url: str) -> None:
+    def __init__(self, url: str, dst: str) -> None:
         self.url = url
-        self.children = None
-        self.catalog = None
+        self.dst = dst
+        self.children = [ ]
+        self.catalog = pystac.Catalog(id='WESM Catalog',
+            description='Catalog representing WESM metadata and associated'
+                ' point cloud files.')
+        self.obj: dict = read_json(self.url)
 
-    def create_collections(self):
-        obj: dict = read_json(self.url)
-        bag = db.from_sequence(v for v in obj.values())
+    def set_children(self, recursive=False):
+        """
+        Add child STAC Collections to overall STAC Catalog
+        """
+        if self.children:
+            return self.children
+
+        # create dask bag to coordinate multi processing
+        bag = db.from_sequence(v for v in self.obj.values())
         self.children: db.Bag = bag.map(MetaCollection).map(
-            lambda col: col.get_stac())
+            lambda col: col.get_stac(recursive)).compute()
+
+        self.catalog.set_root(self.catalog)
+        self.catalog.add_children(self.children)
+        self.catalog.normalize_hrefs(root_href=self.dst)
 
         return self.children
 
     def get_stac(self):
-        if self.children is None:
-            self.create_collections()
-
-        return pystac.Catalog(id='WESM Catalog', description='Catalog representing'
-        ' WESM metadata and associated point cloud files.')
+        """
+        Return over STAC Catalog
+        """
+        return self.catalog
 
 class PCParser(HTMLParser):
     """
@@ -63,6 +106,54 @@ class PCParser(HTMLParser):
                 if k == 'href' and '.laz' in v:
                     self.messages.append(v)
 
+@dataclass
+class WesmMetadata:
+    FESMProjectID: str
+    Entwined: bool
+    EntwinePath: str
+    LAZinCloud: bool
+    FolderName: str
+    workunit: str
+    workunit_id: float
+    project: str
+    project_id: float
+    collect_start: datetime
+    collect_end: datetime
+    ql: str
+    spec: str
+    p_method: str
+    dem_gsd_meters: float
+    horiz_crs: str
+    vert_crs: str
+    geoid: str
+    lpc_pub_date: datetime
+    lpc_category: str
+    lpc_update: str
+    lpc_reason: str
+    sourcedem_pub_date: str
+    sourcedem_update: str
+    sourcedem_category: str
+    sourcedem_reason: str
+    onemeter_category: str
+    onemeter_reason: str
+    seamless_category: str
+    seamless_reason: str
+    lpc_link: str
+    sourcedem_link: str
+    metadata_link: str
+    bbox: Tuple[float, float, float, float]
+
+    def __post_init__(self):
+        self.collect_end = get_date(self.collect_end)
+        self.collect_start = get_date(self.collect_start)
+
+        if self.lpc_link[:-1] != '/':
+            self.lpc_link = self.lpc_link + '/'
+
+        if self.bbox:
+            str_box = self.bbox.strip(' ').split(',')
+            self.bbox = [float(v) for v in str_box]
+
 class MetaCollection:
     """
     MetaCollection will read the corresponding JSON section, pull relevant info from
@@ -71,34 +162,28 @@ class MetaCollection:
     """
 
     def __init__(self, obj):
-        self.meta = obj
-        self.id = self.meta['FESMProjectID']
-        self.hcrs = self.meta['horiz_crs']
-        self.vcrs = self.meta['vert_crs']
+        self.meta = WesmMetadata(**obj)
+        self.pc_dir = urljoin(self.meta.lpc_link, 'LAZ/')
+        self.sidecar_dir = urljoin(self.meta.lpc_link, 'metadata/')
 
-        self.meta_link = self.meta['metadata_link']
-        self.collect_start = self.meta['collect_start']
-        self.collect_end = self.meta['collect_end']
-        self.bbox = self.meta['bbox']
-        if self.bbox:
-            str_box = self.bbox.strip(' ').split(',')
-            self.bbox = [float(v) for v in str_box]
+        e = pystac.Extent(
+            spatial=pystac.SpatialExtent(bboxes=self.meta.bbox),
+            temporal=pystac.TemporalExtent(intervals=[
+                datetime.fromisoformat(self.meta.collect_start),
+                datetime.fromisoformat(self.meta.collect_end)
+            ])
+        )
+        self.collection = pystac.Collection(
+            id=self.meta.FESMProjectID,
+            description='STAC Collection for USGS Project'
+                f'{self.meta.FESMProjectID} derived from WESM JSON.',
+            extent=e,
+        )
+        self.pc_paths = None
+        self.sidecar_paths = None
 
-        # this link is a directory, and needs trailing slash to show that in urljoin
-        lpc_link = self.meta['lpc_link']
-        if lpc_link[:-1] != '/':
-            lpc_link = lpc_link + '/'
-
-        self.pc_dir = urljoin(lpc_link, 'LAZ/')
-        self.sidecar_dir = urljoin(lpc_link, 'metadata/')
-
-
-    def set_pc_paths(self) -> list[str]:
-        """
-        Using the pointcloud path from the metadata, search for all the point
-        cloud tiles that are available and store them along with their
-        sidecar metadata file paths for creating STAC Items.
-        """
+    def set_paths(self):
+        # grab pointcloud paths and sidecar paths
         parser = PCParser()
         res = requests.get(self.pc_dir)
         parser.feed(res.text)
@@ -109,13 +194,30 @@ class MetaCollection:
             urljoin(self.sidecar_dir, m) for m in meta_messages
         ]
 
-    def get_stac(self) -> pystac.Collection:
+    def set_children(self) -> None:
         """
-        Create STAC Collection as well as all child STAC Items
+        Add children to the project STAC Collection
         """
-        e = pystac.Extent()
-        # db.from_sequence(self.pc_paths).map(MetaItem).map(lambda mi: mi.get_stac())
-        return pystac.Collection(id=self.id, description='', extent='# TODO')
+        if not self.pc_paths or not self.sidecar_paths:
+            self.set_paths()
+
+        vars = zip(self.pc_paths, self.sidecar_paths)
+
+        logger.info(f'{self.meta.FESMProjectID}')
+        item_bag = db.from_sequence(vars).map(
+            lambda x: MetaItem(x[0],x[1],self.meta).get_stac())
+        self.items = item_bag.persist()
+
+        # with ProgressBar():
+        self.collection.add_items(self.items)
+
+    def get_stac(self, recursive=False) -> pystac.Collection:
+        """
+        Return project STAC Collection
+        """
+        if recursive:
+            self.set_children()
+        return self.collection
 
     def __repr__(self):
         return json.dumps(self.meta)
@@ -127,18 +229,13 @@ class MetaItem:
     any gaps in information.
     """
 
-    def __init__(self, pc_path: str, meta_path: str, col_meta: MetaCollection):
+    def __init__(self, pc_path: str, meta_path: str, wesm_meta: WesmMetadata):
         self.pc_path = pc_path
         self.meta_path = meta_path
-        self.col_meta = col_meta
+        self.meta = wesm_meta
 
     def info(self):
-
-        cargs = ['pdal','info','--all',
-                f'--filters.hexbin.edge_size=1000',
-                f'--filters.hexbin.threshold=1',
-                str(self.pc_path)]
-        logger.debug(" ".join(cargs))
+        cargs = ['pdal','info','--metadata', '--schema', str(self.pc_path)]
         p = subprocess.Popen(cargs, stdin=subprocess.PIPE,
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE,
@@ -158,60 +255,66 @@ class MetaItem:
         # run pdal info over laz data
         pdal_metadata = self.info()
 
-        pdal_bbox = pdal_metadata['stats']['bbox']['native']['bbox']
-        minx = pdal_bbox["minx"]
-        maxx = pdal_bbox["maxx"]
-        miny = pdal_bbox["miny"]
-        maxy = pdal_bbox["maxy"]
-        minz = pdal_bbox["minz"]
-        maxz = pdal_bbox["maxz"]
+        minx = pdal_metadata['metadata']["minx"]
+        maxx = pdal_metadata['metadata']["maxx"]
+        miny = pdal_metadata['metadata']["miny"]
+        maxy = pdal_metadata['metadata']["maxy"]
+        minz = pdal_metadata['metadata']["minz"]
+        maxz = pdal_metadata['metadata']["maxz"]
 
         # transform data to 4326 for STAC, use source crs for projection extension
-        try:
-            src_crs = pyproj.CRS.from_user_input(pdal_metadata['metadata']["spatialreference"])
-        except KeyError:
+        src_crs_str = pdal_metadata['metadata']["spatialreference"]
+        if src_crs_str:
+            src_crs = pyproj.CRS.from_user_input(src_crs_str)
+        else:
             # some data referenced by WESM doesn't have SRS info in it
-            src_crs = pyproj.CRS.from_user_input(self.col_meta.hcrs)
+            src_crs = pyproj.CRS.from_user_input(self.meta.horiz_crs)
         dst_crs = pyproj.CRS.from_epsg(4326)
         trn = pyproj.Transformer.from_crs(src_crs, dst_crs, always_xy=True)
 
-        left, bottom, right, top = trn.transform_bounds(minx, miny, maxx, maxy)
+        left, bottom, right, top = trn.transform_bounds(
+            minx, miny, maxx, maxy)
         bbox = [left, bottom, minz, right, top, maxz]
 
-        hexbin_metadata = pdal_metadata["boundary"]
-        shape = shapely.geometry.shape(hexbin_metadata["boundary_json"])
-        geometry = shapely.geometry.mapping(shapely.ops.transform(trn.transform, shape))
+        shape = shapely.geometry.box(minx, miny, maxx, maxy)
+        geometry = shapely.geometry.mapping(
+            shapely.ops.transform(trn.transform, shape))
 
         # TODO figure out what other metadata should be going into the item
         # from the WESM JSON
+        stac_id = Path(urlparse(self.pc_path).path).stem
+        properties = {
+            "start_datetime": self.meta.collect_start,
+            "end_datetime": self.meta.collect_end,
+            "seamless_category": self.meta.seamless_category,
+        }
+
         item = pystac.Item(
-            id=self.meta['id'],
+            id=stac_id,
+            # collection=self.meta.id,
             geometry=geometry,
             bbox=bbox,
             datetime=None,
-            properties={
-                "start_datetime": self.col_meta.collect_start,
-                "end_datetime": self.col_meta.collect_end,
-            },
+            properties=properties,
         )
 
         #add pointcloud extension
-        pointcloud = PointcloudExtension.ext(item, add_if_missing=True)
+        pointcloud: PointcloudExtension = PointcloudExtension.ext(item,
+            add_if_missing=True)
         pointcloud.type = "lidar"
-        pointcloud.schemas = pdal_metadata["schema"]["dimensions"]
-        pointcloud.count = pdal_metadata["count"]
+        pointcloud.schemas = [Schema(v) for v in
+            pdal_metadata["schema"]["dimensions"]]
+        pointcloud.count = pdal_metadata["metadata"]["count"]
         pointcloud.encoding = "application/vnd.laszip"
-        pointcloud.density = hexbin_metadata['avg_pt_per_sq_unit']
-        pointcloud.statistics = pdal_metadata['stats']['statistic']
-
 
         # add projection extension
-        projection = ProjectionExtension.ext(item, add_if_missing=True)
+        projection: ProjectionExtension = ProjectionExtension.ext(item,
+            add_if_missing=True)
         projection.epsg = None
         projection.projjson = src_crs.to_json_dict()
-        projection.geometry = hexbin_metadata["boundary_json"]
+        projection.geometry = geometry
+        # projection.geometry = hexbin_metadata["boundary_json"]
         projection.bbox = [minx, miny, minz, maxx, maxy, maxz]
-
 
         # add data and metadata asset
         item.add_asset(
@@ -236,6 +339,6 @@ class MetaItem:
             "https://stac-extensions.github.io/file/v2.1.0/schema.json"
         )
 
-        item.validate()
+
         self.item = item
         return item

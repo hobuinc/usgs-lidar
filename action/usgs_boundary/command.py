@@ -22,7 +22,6 @@ logger.addHandler(ch)
 logger.setLevel(logging.DEBUG)
 
 
-
 def main():
     import argparse
 
