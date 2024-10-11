@@ -45,8 +45,8 @@ def test_item(meta_json: dict[str, Any]):
     assert item.validate()
 
 
-def test_full_loop(wesm_url: dict[str, Any]):
-    m = MetaCatalog(wesm_url)
+def test_full_loop(wesm_url: dict[str, Any], dst_dir):
+    m = MetaCatalog(wesm_url, dst_dir)
     assert m.url == wesm_url
     assert m.children == []
     # reset and make a more reasonable size for testing

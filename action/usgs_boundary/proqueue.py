@@ -6,6 +6,7 @@ import subprocess
 import logging
 logger = logging.getLogger('usgs_boundary')
 import requests
+from urllib.parse import urljoin
 
 import pyproj
 from shapely.ops import transform
@@ -14,6 +15,7 @@ from shapely.geometry import mapping, MultiPolygon
 import shapely.wkt
 from shapely.ops import transform
 import shapely.errors
+from pyproj import CRS
 
 from pystac import Link, Asset, Item
 from pystac.extensions.projection import ProjectionExtension
@@ -24,7 +26,6 @@ from pystac.extensions.pointcloud import (
     Schema,
 )
 
-from pyproj import CRS
 crs = CRS.from_epsg(3857)
 PROJJSON = json.loads(crs.to_json())
 transformation = pyproj.Transformer.from_crs(3857, 4326, always_xy=True)
@@ -76,6 +77,7 @@ class Task(object):
             self.stac()
 
         except (AttributeError, KeyError, json.decoder.JSONDecodeError,shapely.errors.WKTReadingError):
+            logger.error(f'Failed to run task with key {self.key}')
             pass
 
     def count (self):
@@ -111,6 +113,7 @@ class Task(object):
         self.stats = json.loads(ret[0])
 
     def stac(self):
+        from .metadata import MetaCollection
         if not self.poly:
             return None
 
@@ -118,37 +121,23 @@ class Task(object):
         date_end = None
         if self.metadata:
             m = self.metadata
+            m = MetaCollection(self.metadata)
+            date_start = m.meta.collect_start
+            date_end = m.meta.collect_end
+            # meta_asset = Asset(urljoin(m.meta.lpc_link, 'metadata/'),
+            #     'metadata', roles=['metadata'])
+            # set up the pointcloud paths and sidecar paths
+            # grab sidecar paths and add as metadata assets
+            m.set_paths()
+            meta_assets= [
+                Asset(title=f'metadata_{num}', href=meta_url, roles=['metadata'])
+                for num, meta_url in enumerate(m.sidecar_paths)
+            ]
 
-            # date collected
-            # Docs say it should be YYYY-MM-DD (isoformat),
-            # but seeing YYYY/MM/DD, which is not isoformat. Covering both.
-            def get_date(d:str) -> datetime:
-                try:
-                    d_obj = datetime.isoformat(d)
-                except:
-                    try:
-                        d_obj = datetime.strptime(d, '%Y/%m/%d')
-                    except Exception as e:
-                        raise ValueError(f'Invalid datetime ({d}).', e)
-
-            date_start_str = m['collect_start']
-            if date_start_str:
-                date_start = get_date(date_start_str)
-
-            date_end_str = m['collect_end']
-            if date_end_str:
-                date_end = get_date(date_end_str)
-
-            # description
-            #there are descriptions in the metadata files, but cannot reliably
-            #locate those files.
-
-            # metadata link
-            meta_url = m['metadata_link']
-            if meta_url:
-                # cannot currently reliably locate an xml file without combing
-                # through available options at the link
-                meta_link = Link(title='metadata', target=meta_url)
+        else:
+            meta_assets= []
+            date_start = datetime.now().isoformat()+'Z'
+            date_end= datetime.now().isoformat()+'Z'
 
 
         item = Item(self.name,
@@ -160,6 +149,8 @@ class Task(object):
                         'start_datetime': date_start,
                         'end_datetime': date_end
                     })
+        for meta_asset in meta_assets:
+            item.add_asset(meta_asset.title, meta_asset)
 
         # icky
         s = self.ept['schema']
@@ -188,10 +179,7 @@ class Task(object):
         asset = Asset(self.url, 'entwine', 'The ept.json for accessing data')
         item.add_asset('ept.json', asset)
 
-        item_link = Link('self', f'{self.args.stac_base_url}{self.name}.json')
-        item_parent = Link('parent', f'{self.args.stac_base_url}catalog.json')
-        item.add_links([item_link, item_parent, meta_link])
-        self.item = item
+        self.stac_item = item
 
 
     def __repr__(self):

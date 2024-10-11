@@ -12,6 +12,14 @@ def dask_conf():
 def log():
     logger.setLevel('DEBUG')
 
+@pytest.fixture(autouse=True)
+def dst_dir(tmp_path_factory):
+    yield tmp_path_factory.mktemp("test_tdb")
+
+@pytest.fixture
+def ept_url():
+    yield ''
+
 @pytest.fixture
 def wesm_url():
     yield 'https://apps.nationalmap.gov/lidar-explorer/lidar_ndx.json'

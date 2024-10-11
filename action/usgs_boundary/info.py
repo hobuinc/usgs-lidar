@@ -3,7 +3,8 @@
 import sys
 import io
 import json
-from urllib.request import urlopen
+import copy
+from urllib.request import urlopen, urljoin
 from .proqueue import Process, Task, Command
 
 from .layer import Layer
@@ -72,11 +73,13 @@ def info(args):
     queue = Process()
 
 
-    cat_url = Path(args.stac_base_url, 'catalog.json')
+    cat_url = urljoin(args.stac_base_url, 'catalog.json')
     catalog = pystac.Catalog('3dep',
                          'A catalog of USGS 3DEP Lidar hosted on AWS s3.',
                          href=f'{str(cat_url)}',
-                         stac_extensions=['POINTCLOUD'])
+                         stac_extensions=['POINTCLOUD'],
+                         catalog_type="SELF_CONTAINED")
+    catalog.set_root(catalog)
 
     base = Path(args.stac_directory)
     base.mkdir(exist_ok=True, parents=True)
@@ -105,7 +108,7 @@ def info(args):
 
 #        logger.debug(t)
 
-    queue.do(count=1)
+    queue.do(count=20)
 
     l = Layer(args)
     item_list = []
@@ -113,15 +116,20 @@ def info(args):
         if not r.error:
 
             l.add(r)
-            i = r.stac_item
+            i: pystac.Item = r.stac_item
+            #deepcopy before making links
+            ic_i = copy.deepcopy(i)
 
-            with open(base / f"{r.name}.json", 'w') as f:
-                item_list.append(i)
-                d = i.to_dict()
-                json.dump(d, f)
+            catalog.add_item(i)
+            i.save_object(include_self_link=True, dest_href=base/r.name/f"{r.name}.json")
+            item_list.append(ic_i)
 
-            link = pystac.Link('item', f'{args.stac_base_url}{r.name}.json')
-            catalog.add_link(link)
+            # with open(base / f"{r.name}.json", 'w') as f:
+            #     item_list.append(i)
+            #     d = i.to_dict()
+            #     json.dump(d, f)
+
+            # link = pystac.Link('item', f'{args.stac_base_url}{r.name}.json')
     item_collection = pystac.ItemCollection(items=item_list)
 
     errors = []
@@ -133,12 +141,14 @@ def info(args):
     f.write(json.dumps(errors).encode('utf-8'))
     f.close()
 
+    catalog.save_object(True, dest_href=base/'catalog.json')
+    item_collection.save_object(dest_href=base/'item_collection.json')
 
-    with open(base / "catalog.json", 'w') as f:
-        json.dump(catalog.to_dict(), f)
+    # with open(base / "catalog.json", 'w') as f:
+    #     json.dump(catalog.to_dict(), f)
 
-    with open(base / "item_collection.json", 'w') as f:
-        json.dump(item_collection.to_dict(), f)
+    # with open(base / "item_collection.json", 'w') as f:
+    #     json.dump(item_collection.to_dict(), f)
     # write item_collection.json
 
 

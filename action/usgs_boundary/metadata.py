@@ -3,7 +3,7 @@ import logging
 import sys
 
 from datetime import datetime
-from typing import Any, Tuple
+from typing import Any, Tuple, Self
 from dataclasses import dataclass
 
 import requests
@@ -38,74 +38,6 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 logger.setLevel(logging.INFO)
 
-# date collected
-# WESM Docs say it should be YYYY-MM-DD (isoformat), but I'm also seeing
-# YYYY/MM/DD, which is not isoformat so we're covering both.
-def get_date(d:str) -> datetime:
-    try:
-        dt = datetime.isoformat(d)
-    except:
-        try:
-            dt = datetime.strptime(d, '%Y/%m/%d')
-        except Exception as e:
-            raise ValueError(f'Invalid datetime ({d}).', e)
-    return dt.strftime('%Y-%m-%dT%H:%M:%SZ')
-
-class MetaCatalog:
-    """
-    MetaCatalog reads the WESM JSON file at the given url, and creates a list of
-    MetaCollections. Dask Bag helps facilitate the mapping of this in parallel.
-    """
-    def __init__(self, url: str, dst: str) -> None:
-        self.url = url
-        self.dst = dst
-        self.children = [ ]
-        self.catalog = pystac.Catalog(id='WESM Catalog',
-            description='Catalog representing WESM metadata and associated'
-                ' point cloud files.')
-        self.obj: dict = read_json(self.url)
-
-    def set_children(self, recursive=False):
-        """
-        Add child STAC Collections to overall STAC Catalog
-        """
-        if self.children:
-            return self.children
-
-        # create dask bag to coordinate multi processing
-        bag = db.from_sequence(v for v in self.obj.values())
-        self.children: db.Bag = bag.map(MetaCollection).map(
-            lambda col: col.get_stac(recursive)).compute()
-
-        self.catalog.set_root(self.catalog)
-        self.catalog.add_children(self.children)
-        self.catalog.normalize_hrefs(root_href=self.dst)
-
-        return self.children
-
-    def get_stac(self):
-        """
-        Return over STAC Catalog
-        """
-        return self.catalog
-
-class PCParser(HTMLParser):
-    """
-    Parser HTML returned from rockyweb endpoints, finding laz files associated
-    with a specific project. These laz files also share names (minus suffix) with
-    the metadata files, which are located in the metadata directory up a level.
-    """
-    def __init__(self):
-        HTMLParser.__init__(self)
-        self.messages = []
-
-    def handle_starttag(self, tag: str, attrs: Any) -> None:
-        attrs_json = dict(attrs)
-        if tag == 'a':
-            for k,v in attrs_json.items():
-                if k == 'href' and '.laz' in v:
-                    self.messages.append(v)
-
 @dataclass
 class WesmMetadata:
     FESMProjectID: str
@@ -117,8 +49,8 @@ class WesmMetadata:
     workunit_id: float
     project: str
     project_id: float
-    collect_start: datetime
-    collect_end: datetime
+    collect_start: str
+    collect_end: str
     ql: str
     spec: str
     p_method: str
@@ -147,12 +79,87 @@ class WesmMetadata:
         self.collect_end = get_date(self.collect_end)
         self.collect_start = get_date(self.collect_start)
 
-        if self.lpc_link[:-1] != '/':
+        if self.lpc_link is None or not self.lpc_link:
+            pass
+        elif self.lpc_link[:-1] != '/':
             self.lpc_link = self.lpc_link + '/'
 
         if self.bbox:
             str_box = self.bbox.strip(' ').split(',')
             self.bbox = [float(v) for v in str_box]
+
+# date collected
+# WESM Docs say it should be YYYY-MM-DD (isoformat), but I'm also seeing
+# YYYY/MM/DD, which is not isoformat so we're covering both.
+def get_date(d:str) -> Any:
+    try:
+        dt = datetime.isoformat(d)
+    except:
+        try:
+            dt = datetime.strptime(d, '%Y/%m/%d')
+        except Exception as e:
+            raise ValueError(f'Invalid datetime ({d}).', e)
+    return dt.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+class MetaCatalog:
+    """
+    MetaCatalog reads the WESM JSON file at the given url, and creates a list of
+    MetaCollections. Dask Bag helps facilitate the mapping of this in parallel.
+    """
+    def __init__(self, url: str, dst: str) -> None:
+        self.url = url
+        self.dst = dst
+        self.children = [ ]
+        self.catalog = pystac.Catalog(id='WESM Catalog',
+            description='Catalog representing WESM metadata and associated'
+                ' point cloud files.')
+        self.catalog.set_root(self.catalog)
+        self.obj: dict = read_json(self.url)
+
+    def set_children(self, recursive=False):
+        """
+        Add child STAC Collections to overall STAC Catalog
+        """
+        if self.children:
+            return self.children
+
+        # create dask bag to coordinate multi processing
+        bag = db.from_sequence(v for v in self.obj.values())
+        root_bag = db.from_sequence(self.catalog for v in self.obj.values())
+
+        children: db.Bag = bag.map(MetaCollection)
+        cols = children.map(MetaCollection.get_stac)
+        add_root= cols.map(lambda col, root: col.set_root(root.catalog), root_bag)
+        save_col = cols.map(lambda col, root, rooted: col.normalize_and_save(root.get_href()), root_bag, add_root)
+        save_col.compute()
+
+        self.catalog.add_children(children)
+        self.catalog.normalize_hrefs(root_href=self.dst)
+
+        return self.children
+
+    def get_stac(self):
+        """
+        Return overall STAC Catalog
+        """
+        return self.catalog
+
+class PCParser(HTMLParser):
+    """
+    Parser HTML returned from rockyweb endpoints, finding laz files associated
+    with a specific project. These laz files also share names (minus suffix) with
+    the metadata files, which are located in the metadata directory up a level.
+    """
+    def __init__(self):
+        HTMLParser.__init__(self)
+        self.messages = []
+
+    def handle_starttag(self, tag: str, attrs: Any) -> None:
+        attrs_json = dict(attrs)
+        if tag == 'a':
+            for k,v in attrs_json.items():
+                if k == 'href' and '.laz' in v:
+                    self.messages.append(v)
 
 class MetaCollection:
     """
@@ -219,6 +226,11 @@ class MetaCollection:
             self.set_children()
         return self.collection
 
+    @staticmethod
+    def get_stac(c: Self, recursive=False):
+        return c.get_stac(recursive)
+
+
     def __repr__(self):
         return json.dumps(self.meta)
 
@@ -251,6 +263,15 @@ class MetaItem:
         return self.stats
 
     def get_stac(self) -> pystac.Item:
+
+        # determine if stac info needs to be re-run
+        headers = requests.head(self.pc_path).headers
+        if headers['ETag']:
+            etag = headers['ETag']
+            if '"' in etag:
+                etag = etag.strip('"')
+        else:
+            etag = ''
 
         # run pdal info over laz data
         pdal_metadata = self.info()
@@ -287,6 +308,7 @@ class MetaItem:
             "start_datetime": self.meta.collect_start,
             "end_datetime": self.meta.collect_end,
             "seamless_category": self.meta.seamless_category,
+            "etag": etag
         }
 
         item = pystac.Item(
