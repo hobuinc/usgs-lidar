@@ -37,7 +37,15 @@ def task_ept():
         'version': '1.0.0'
     }
 
-def test_task(meta_json, task_ept):
+@pytest.fixture
+def polygon():
+    yield shapely.from_wkt('MULTIPOLYGON (((-110.48183846654055 45.165767834035904, -110.46387216085816 45.18770398507912, -110.49082161938175 45.19866920820327, -110.50878792506414 45.18770398507912, -110.48183846654055 45.165767834035904)))')
+
+@pytest.fixture
+def point_count():
+    yield 5306053
+
+def test_task(meta_json, task_ept, polygon, point_count):
 
     task = Task(bucket='usgs-lidar-public',
         key='WY_YellowstoneNP_1RF_2020/',
@@ -49,8 +57,8 @@ def test_task(meta_json, task_ept):
     task.geometry()
     task.stac()
 
-    assert task.poly == shapely.from_wkt('MULTIPOLYGON (((-110.48183846654055 45.165767834035904, -110.46387216085816 45.18770398507912, -110.49082161938175 45.19866920820327, -110.50878792506414 45.18770398507912, -110.48183846654055 45.165767834035904)))')
+    assert task.poly == polygon
     assert task.stac_item.validate()
     assert task.stac_item.to_dict()
     assert task.ept == task_ept
-    assert task.num_points == 5306053
+    assert task.num_points == point_count

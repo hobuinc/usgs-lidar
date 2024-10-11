@@ -45,8 +45,8 @@ def test_item(meta_json: dict[str, Any]):
     assert item.validate()
 
 
-def test_full_loop(wesm_url: dict[str, Any], dst_dir):
-    m = MetaCatalog(wesm_url, dst_dir)
+def test_full_loop(wesm_url: dict[str, Any], dst_dir, s3_url):
+    m = MetaCatalog(wesm_url, dst_dir, s3_url)
     assert m.url == wesm_url
     assert m.children == []
     # reset and make a more reasonable size for testing
@@ -54,12 +54,12 @@ def test_full_loop(wesm_url: dict[str, Any], dst_dir):
         "WA_PSLC_2000": m.obj["WA_PSLC_2000"],
         "WY_YELLOWSTONENP_1RF_2020": m.obj["WY_YELLOWSTONENP_1RF_2020"]
     }
-    m.obj = {}
+    m.obj = { }
     for i, kv in enumerate(obj.items()):
         if i >= 3:
             break
         m.obj[kv[0]] = kv[1]
 
-    l = m.set_children(recursive=True)
+    l = m.set_children()
     m.catalog.normalize_hrefs('./usgs_stac/')
     assert m.catalog.validate()

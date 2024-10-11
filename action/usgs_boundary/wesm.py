@@ -12,12 +12,14 @@ def usgs_stac():
             default=WESM_URL)
     parser.add_argument("--dst", type=str, help="Destination directory",
             default='./wesm_stac/')
+    parser.add_argument("--stac_bucket", type=str, help="Bucket for root STAC href.", default="usgs-lidar-stac")
 
     args = parser.parse_args()
-    m = MetaCatalog(args.url, args.dst)
-    m.set_children(recursive=True)
+    m = MetaCatalog(args.url, args.dst, )
+    m.set_children()
     c = m.get_stac()
-    c.normalize_and_save(args.dst)
+    c.normalize_hrefs(args.dst)
+
 
 if __name__ == '__main__':
     usgs_stac()

@@ -145,7 +145,7 @@ class Task(object):
                     list(self.poly.bounds),
                     None,
                     {
-                        'description': 'A USGS Lidar pointcloud in Entwine/EPT format',
+                        'description': f'USGS Lidar pointcloud {self.name} in Entwine/EPT format',
                         'start_datetime': date_start,
                         'end_datetime': date_end
                     })

@@ -1,6 +1,7 @@
 import json
 import logging
 import sys
+from os import path
 
 from datetime import datetime
 from typing import Any, Tuple, Self
@@ -106,17 +107,28 @@ class MetaCatalog:
     MetaCatalog reads the WESM JSON file at the given url, and creates a list of
     MetaCollections. Dask Bag helps facilitate the mapping of this in parallel.
     """
-    def __init__(self, url: str, dst: str) -> None:
+    def __init__(self, url: str, dst: str, href: str) -> None:
         self.url = url
-        self.dst = dst
+
+        if str(dst)[:-1] != '/':
+            self.dst = str(dst) + '/'
+        else:
+            self.dst = str(dst)
+
         self.children = [ ]
         self.catalog = pystac.Catalog(id='WESM Catalog',
             description='Catalog representing WESM metadata and associated'
                 ' point cloud files.')
         self.catalog.set_root(self.catalog)
         self.obj: dict = read_json(self.url)
+        self.href = href
+        self.catalog.set_self_href(urljoin(href, "catalog.json"))
 
-    def set_children(self, recursive=False):
+    def save_local(self):
+        p = path.join(self.dst, "catalog.json")
+        self.catalog.save_object(True, p)
+
+    def set_children(self):
         """
         Add child STAC Collections to overall STAC Catalog
         """
@@ -124,16 +136,14 @@ class MetaCatalog:
             return self.children
 
         # create dask bag to coordinate multi processing
-        bag = db.from_sequence(v for v in self.obj.values())
-        root_bag = db.from_sequence(self.catalog for v in self.obj.values())
-
-        children: db.Bag = bag.map(MetaCollection)
-        cols = children.map(MetaCollection.get_stac)
-        add_root= cols.map(lambda col, root: col.set_root(root.catalog), root_bag)
-        save_col = cols.map(lambda col, root, rooted: col.normalize_and_save(root.get_href()), root_bag, add_root)
+        bag = db.from_sequence(v for v in self.obj.values()) # make item bag
+        children: db.Bag = bag.map(MetaCollection, self.href) # Make Collections from Items
+        add_root= children.map(lambda c, r: c.collection.set_root(r), self.catalog)
+        cols = children.map(lambda c, ar: c.get_stac(), add_root) #add_root included for correct ordering
+        save_col = children.map(lambda c, s, dst: c.save_local(dst), s=cols, dst=self.dst)
         save_col.compute()
 
-        self.catalog.add_children(children)
+        self.catalog.add_children([c.collection for c in children])
         self.catalog.normalize_hrefs(root_href=self.dst)
 
         return self.children
@@ -168,8 +178,10 @@ class MetaCollection:
     pointcloud path found in the JSON.
     """
 
-    def __init__(self, obj):
+    def __init__(self, obj, href):
         self.meta = WesmMetadata(**obj)
+        self.id = self.meta.FESMProjectID
+        self.href = urljoin(href, self.id, f"{self.id}.json")
         self.pc_dir = urljoin(self.meta.lpc_link, 'LAZ/')
         self.sidecar_dir = urljoin(self.meta.lpc_link, 'metadata/')
 
@@ -181,18 +193,28 @@ class MetaCollection:
             ])
         )
         self.collection = pystac.Collection(
-            id=self.meta.FESMProjectID,
-            description='STAC Collection for USGS Project'
-                f'{self.meta.FESMProjectID} derived from WESM JSON.',
+            id=self.id,
+            description=f'STAC Collection for USGS Project {self.id} derived'
+                ' from WESM JSON.',
             extent=e,
         )
+        self.collection.set_self_href(self.href)
         self.pc_paths = None
         self.sidecar_paths = None
+        self.items = []
+
+    def save_local(self, root_path):
+        p = path.join(root_path, self.id, f"{self.id}.json")
+        self.collection.save_object(True, p)
+        for item in self.collection.get_items():
+            item_path = path.join(root_path, self.id, item.id, f"{item.id}.json")
+            item.save_object(True, item_path)
 
     def set_paths(self):
         # grab pointcloud paths and sidecar paths
         parser = PCParser()
         res = requests.get(self.pc_dir)
+
         parser.feed(res.text)
         self.pc_paths = [urljoin(self.pc_dir, p) for p in parser.messages]
 
@@ -208,28 +230,25 @@ class MetaCollection:
         if not self.pc_paths or not self.sidecar_paths:
             self.set_paths()
 
+
         vars = zip(self.pc_paths, self.sidecar_paths)
 
         logger.info(f'{self.meta.FESMProjectID}')
-        item_bag = db.from_sequence(vars).map(
-            lambda x: MetaItem(x[0],x[1],self.meta).get_stac())
+        item_bag = (db.from_sequence(vars)
+            .map(lambda x: MetaItem(x[0],x[1],self.meta).get_stac())
+            .map(lambda i, c: c.add_item(i, title=i.id), self.collection))
         self.items = item_bag.persist()
 
         # with ProgressBar():
-        self.collection.add_items(self.items)
+        # self.collection.add_items(self.items)
 
-    def get_stac(self, recursive=False) -> pystac.Collection:
+    def get_stac(self) -> pystac.Collection:
         """
         Return project STAC Collection
         """
-        if recursive:
+        if not self.items:
             self.set_children()
         return self.collection
-
-    @staticmethod
-    def get_stac(c: Self, recursive=False):
-        return c.get_stac(recursive)
-
 
     def __repr__(self):
         return json.dumps(self.meta)

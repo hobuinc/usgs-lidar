@@ -78,7 +78,7 @@ def info(args):
                          'A catalog of USGS 3DEP Lidar hosted on AWS s3.',
                          href=f'{str(cat_url)}',
                          stac_extensions=['POINTCLOUD'],
-                         catalog_type="SELF_CONTAINED")
+                         catalog_type="ABSOLUTE_PUBLISHED")
     catalog.set_root(catalog)
 
     base = Path(args.stac_directory)

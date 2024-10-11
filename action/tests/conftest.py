@@ -16,6 +16,10 @@ def log():
 def dst_dir(tmp_path_factory):
     yield tmp_path_factory.mktemp("test_tdb")
 
+@pytest.fixture(autouse=True)
+def s3_url():
+    yield 'https://s3-us-east-1.amazonaws.com/hobu-lidar-test/stac_ept/ept/'
+
 @pytest.fixture
 def ept_url():
     yield ''
