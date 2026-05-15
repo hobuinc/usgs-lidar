@@ -36,8 +36,7 @@ transformation = pyproj.Transformer.from_crs(3857, 4326, always_xy=True)
 
 from pyproj import CRS
 crs = CRS.from_epsg(3857)
-import json
-PROJJSON = json.loads(crs.to_json())
+PROJJSON = crs.to_json_dict()
 
 # Will be written when self.layer.__del__ is called
 class Layer(object):
@@ -89,7 +88,7 @@ class Layer(object):
 
         ProjectionExtension.add_to(item)
         ProjectionExtension.ext(item).apply(
-            3857,
+            epsg=3857,
             projjson=PROJJSON
         )
 
