@@ -21,18 +21,20 @@ jobs:
         python-version: ['3.14']
 
     steps:
-    - uses: actions/checkout@v2
-    - uses: conda-incubator/setup-miniconda@v2
+    - uses: actions/checkout@v6
+    - uses: conda-incubator/setup-miniconda@v4
       with:
         channels: conda-forge
         auto-update-conda: true
+        miniforge-variant: Miniforge3
+        miniforge-version: latest
+        use-mamba: true
         python-version: ${{ matrix.python-version }}
     - name: Install prerequisites
       shell: bash -l {0}
       run: |
-          conda config --add channels conda-forge
-          conda install -c conda-forge pdal=2.10 pystac Shapely pyproj Fiona nodejs -y
-          cd action; pip install requests boto3 awscli; pip install -e .
+          conda install libpdal-core=2.10 pystac Shapely boto3 awscli pyproj Fiona nodejs -y
+          cd action; pip install -e .
           npm install -g topojson-server
     - name: Gather boundaries
       shell: bash -l {0}
