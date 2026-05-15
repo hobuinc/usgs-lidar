@@ -36,7 +36,7 @@ transformation = pyproj.Transformer.from_crs(3857, 4326, always_xy=True)
 
 from pyproj import CRS
 crs = CRS.from_epsg(3857)
-PROJJSON = crs.to_json()
+PROJJSON = crs.to_json_dict()
 
 # Will be written when self.layer.__del__ is called
 class Layer(object):
