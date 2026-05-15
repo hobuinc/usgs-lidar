@@ -33,7 +33,7 @@ jobs:
     - name: Install prerequisites
       shell: bash -l {0}
       run: |
-          conda install libpdal-core=2.10 pystac Shapely boto3 awscli pyproj Fiona nodejs -y
+          conda install libpdal-core=2.10 pystac Shapely boto3 awscli pyproj Fiona nodejs gdal=3.12.4 -y
           cd action; pip install -e .
           npm install -g topojson-server
     - name: Gather boundaries
