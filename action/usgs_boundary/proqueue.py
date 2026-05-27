@@ -69,7 +69,7 @@ class Task(object):
             self.info()
             self.geometry()
 
-        except (AttributeError, KeyError, json.decoder.JSONDecodeError, shapely.errors.ShapelyError) as e:
+        except (AttributeError, KeyError, json.decoder.JSONDecodeError, shapely.errors.ShapelyError):
             pass
 
     def count (self):
