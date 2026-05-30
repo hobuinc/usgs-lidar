@@ -69,7 +69,7 @@ class Task(object):
             self.info()
             self.geometry()
 
-        except (AttributeError, KeyError, json.decoder.JSONDecodeError,shapely.errors.WKTReadingError):
+        except (AttributeError, KeyError, json.decoder.JSONDecodeError, shapely.errors.ShapelyError):
             pass
 
     def count (self):
@@ -120,5 +120,4 @@ class Process(object):
     def do(self, count = multiprocessing.cpu_count()):
         pool = multiprocessing.Pool(processes=count)
         self.results = (pool.map(run, self.tasks))
-#        import pdb;pdb.set_trace()
 
