@@ -11,7 +11,7 @@ from pystac import ItemCollection, Item, Link, Asset, Catalog, CatalogType, RelT
 from pystac.extensions.pointcloud import PointcloudExtension, Schema
 from pystac.extensions.projection import ProjectionExtension
 
-from shapely.ops import transform
+from shapely import transform
 from shapely.geometry import shape, mapping
 
 def get_resources():
@@ -103,12 +103,13 @@ def parse_metadata(href: str):
         elif date_type == 'Discrete':
             metadata_info['date'] = dates.find('start-date-time').text
     except AttributeError:
-        if parsed.find('item-identification').find('publication-date'):
-            metadata_info['date'] = parsed.find('item-identification').find('publication-date').text
+        publication_date = parsed.findtext('item-identification/publication-date')
+        if publication_date:
+            metadata_info['date'] = publication_date
 
     # Get support links. If there are no contact links, return nothing.
     support_roles = parsed.find('support-roles')
-    if support_roles:
+    if support_roles is not None:
         metadata_info['support_roles'] = []
         for sr in support_roles:
             try:
@@ -149,7 +150,7 @@ def process_one(
     src_bbox = list(s.bounds)
 
     item_bbox = trn.transform_bounds(*src_bbox)
-    item_geometry = mapping(transform(trn.transform, s))
+    item_geometry = mapping(transform(s, trn.transform, include_z=s.has_z, interleaved=False))
 
     metadata_link = properties['Metalink']
     metadata = parse_metadata(metadata_link)

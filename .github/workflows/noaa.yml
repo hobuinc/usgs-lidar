@@ -34,12 +34,12 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install prerequisites
       run: |
-        python -m pip install 'pystac[validation]' pyproj shapely boto3 awscli
+        python -m pip install 'pystac[validation]' pyproj 'shapely>=2.1' boto3 awscli
         python -m pip check
         aws --version
     - name: Test NOAA inventory handling
       working-directory: action
-      run: python -m unittest discover -s tests -v
+      run: python -W error::DeprecationWarning -m unittest discover -s tests -v
     - name: Create NOAA STAC
       working-directory: action/usgs_boundary
       run: |

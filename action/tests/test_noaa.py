@@ -102,6 +102,79 @@ class NOAAInventoryTests(unittest.TestCase):
         self.assertEqual(item.datetime.year, 2020)
         self.assertEqual(item.assets['ept'].href, 'https://example.com/ept.json')
 
+    def test_reprojection_preserves_coordinates_and_dimensions(self):
+        coordinates = [(0, 0), (111319.49079327357, 0),
+                       (111319.49079327357, 111325.1428663851),
+                       (0, 111325.1428663851), (0, 0)]
+        expected = [(0, 0), (1, 0), (1, 1), (0, 1), (0, 0)]
+        source = pyproj.CRS.from_epsg(3857)
+        destination = pyproj.CRS.from_epsg(4326)
+        transformer = pyproj.Transformer.from_crs(source, destination, always_xy=True)
+        for dimensions in (2, 3):
+            with self.subTest(dimensions=dimensions):
+                ring = [p if dimensions == 2 else (*p, 42) for p in coordinates]
+                feature = {
+                    'geometry': {'type': 'Polygon', 'coordinates': [ring]},
+                    'properties': {
+                        'Name': 'Projected lidar', 'Year': '2020', 'Metalink': '',
+                        'ExternalProviderLink': {'links': [
+                            {'label': 'EPT NOAA', 'link': 'https://example.com/ept.json'},
+                        ]},
+                    },
+                }
+                ept = {'points': 100, 'schema': [
+                    {'name': axis, 'type': 'signed', 'size': 4} for axis in ['X', 'Y', 'Z']
+                ]}
+                with patch.object(noaa, 'parse_metadata', return_value={}):
+                    with patch.object(noaa, 'get_json_info', return_value=ept):
+                        item = noaa.process_one(feature, source, destination, transformer)
+                ring = item.geometry['coordinates'][0]
+                self.assertEqual(len(ring), len(expected))
+                for actual, (longitude, latitude) in zip(ring, expected):
+                    self.assertEqual(len(actual), dimensions)
+                    self.assertAlmostEqual(actual[0], longitude)
+                    self.assertAlmostEqual(actual[1], latitude)
+                    if dimensions == 3:
+                        self.assertEqual(actual[2], 42)
+
+
+class NOAAMetadataTests(unittest.TestCase):
+    def parse_xml(self, publication_date='', support_roles=''):
+        xml = f'''<metadata>
+            <item-identification><abstract>Example lidar</abstract>
+                {publication_date}
+            </item-identification>
+            <extents><extent /></extents>
+            {support_roles}
+        </metadata>'''
+        with patch.object(noaa.request, 'urlopen', return_value=io.BytesIO(xml.encode())):
+            return noaa.parse_metadata('https://example.com/metadata')
+
+    def test_publication_date_fallback_and_support_roles(self):
+        metadata = self.parse_xml(
+            '<publication-date>2020-05-06</publication-date>',
+            '''<support-roles><support-role>
+                <contact-url>https://example.com/provider</contact-url>
+                <support-role-type>provider</support-role-type>
+                <contact-name>Example provider</contact-name>
+            </support-role></support-roles>''',
+        )
+        self.assertEqual(metadata['date'], '2020-05-06')
+        self.assertEqual(metadata['support_roles'], [{
+            'href': 'https://example.com/provider',
+            'title': 'provider',
+            'name': 'Example provider',
+        }])
+
+    def test_missing_or_empty_optional_elements(self):
+        for date in ('', '<publication-date />'):
+            for roles in ('', '<support-roles />'):
+                with self.subTest(date=date, roles=roles):
+                    metadata = self.parse_xml(date, roles)
+                    self.assertEqual(metadata['description'], 'Example lidar')
+                    self.assertNotIn('date', metadata)
+                    self.assertEqual(metadata.get('support_roles', []), [])
+
 
 if __name__ == '__main__':
     unittest.main()
