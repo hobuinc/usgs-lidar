@@ -2,6 +2,11 @@ name: Boundaries
 
 on:
     workflow_dispatch:
+      inputs:
+        dry_run:
+          description: Generate and verify outputs without publishing to S3 or Git
+          type: boolean
+          default: false
     schedule:
       - cron: "50 15 * * * "
 
@@ -20,8 +25,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        # Keep runner OS upgrades deliberate instead of following ubuntu-latest.
-        os: ['ubuntu-24.04']
+        os: ['ubuntu-latest']
         python-version: ['3.14']
 
     steps:
@@ -42,6 +46,7 @@ jobs:
           # Keep native dependencies managed by Conda, not pip or system Python.
           python -m pip install --no-deps -e ./action
           npm install --global --prefix "$CONDA_PREFIX" topojson-server
+          python -m pip check
     - name: Gather boundaries
       run: |
           usgs-boundary usgs-lidar-public -v --resolution 800.0
@@ -51,18 +56,39 @@ jobs:
           mv errors.json ./boundaries
           "$CONDA_PREFIX/bin/geo2topo" -o boundaries.topojson ./boundaries/resources.geojson
           mv boundaries.topojson ./boundaries
-          aws s3 sync stac_ept s3://usgs-lidar-stac/ept/ --acl public-read
-
       env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    - name: Verify generated boundaries
+      run: |
+        python - <<'PY'
+        import json
+        from pathlib import Path
+
+        boundaries = json.loads(Path('boundaries/resources.geojson').read_text())
+        topology = json.loads(Path('boundaries/boundaries.topojson').read_text())
+        items = json.loads(Path('stac_ept/item_collection.json').read_text())
+        errors = json.loads(Path('boundaries/errors.json').read_text())
+        assert boundaries['features'], 'No boundary features generated'
+        assert topology['type'] == 'Topology' and topology['objects'], 'No topology generated'
+        assert len(items['features']) == len(boundaries['features']), 'STAC and boundary counts differ'
+        print(f"Generated {len(items['features'])} boundaries and STAC items; {len(errors)} source errors recorded in errors.json")
+        PY
+    - name: Publish STAC
+      if: ${{ !inputs.dry_run }}
+      run: aws s3 sync stac_ept s3://usgs-lidar-stac/ept/ --acl public-read
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     - name: Configure Git
+      if: ${{ !inputs.dry_run }}
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add boundaries/*
         git commit -m "Update boundaries" -a
     - name: Push changes
+      if: ${{ !inputs.dry_run }}
       uses: ad-m/github-push-action@v1.3.0
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}

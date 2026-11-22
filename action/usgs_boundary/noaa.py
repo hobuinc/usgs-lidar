@@ -14,9 +14,63 @@ from pystac.extensions.projection import ProjectionExtension
 from shapely.ops import transform
 from shapely.geometry import shape, mapping
 
+def get_resources():
+    """Read the paginated inventory used by NOAA's current Data Access Viewer."""
+    features = []
+    page = 0
+    while True:
+        query = {
+            'published': 'true',
+            'dataTypes': ['lidar'],
+            'aoi': 'SRID=4269;POLYGON((-180 -90,180 -90,180 90,-180 90,-180 -90))',
+            'sort': 'asc',
+            'pageSize': 100,
+            'page': page,
+            'getGeoJson': 'true',
+        }
+        req = request.Request(
+            'https://coast.noaa.gov/dataviewer/api/v1/missions',
+            data=json.dumps(query).encode(),
+            headers={'Content-Type': 'application/json'},
+        )
+        with request.urlopen(req, timeout=60) as response:
+            result = json.load(response)
+        missions = result['missions']['data']
+        if not missions:
+            raise RuntimeError('NOAA inventory returned an empty page')
+        geometries = {
+            f['properties']['missionId']: f['geometry']
+            for f in result['missions']['geoJson']['features']
+        }
+        for mission in missions:
+            attributes = mission['attributes']
+            links = attributes.get('links', [])
+            features.append({
+                'type': 'Feature',
+                'geometry': geometries[mission['missionId']],
+                'properties': {
+                    'Name': mission['title'],
+                    'DataType': mission['dataType'],
+                    'Year': attributes.get('year', 0),
+                    'Metalink': next((link['uri'] for link in links
+                                     if link.get('linkTypeName') == 'Metadata'), ''),
+                    'ExternalProviderLink': {'links': [
+                        {'label': link.get('title'), 'link': link['uri']}
+                        for link in links
+                    ]},
+                },
+            })
+        if len(features) >= result['missionCount']:
+            return {
+                'type': 'FeatureCollection',
+                'crs': {'type': 'name', 'properties': {'name': 'EPSG:4326'}},
+                'features': features,
+            }
+        page += 1
+
 def get_json_info(href: str):
     try:
-        contents = request.urlopen(href).read()
+        contents = request.urlopen(href, timeout=60).read()
     except:
         return {}
     json_info = json.loads(contents)
@@ -26,7 +80,7 @@ def parse_metadata(href: str):
     metadata_info = {}
     metadata_path = path.join(href, 'inport-xml')
     try:
-        contents = request.urlopen(metadata_path).read()
+        contents = request.urlopen(metadata_path, timeout=60).read()
     except:
         return metadata_info
     parsed = ET.fromstring(contents)
@@ -99,7 +153,7 @@ def process_one(
 
     metadata_link = properties['Metalink']
     metadata = parse_metadata(metadata_link)
-    item_properties = { 'description': metadata['description'] }
+    item_properties = { 'description': metadata.get('description', name) }
 
     # If start and end date are available, use them. If not go to discrete date.
     # If that's not there, use the date provided in the
@@ -128,7 +182,7 @@ def process_one(
             continue
 
         # Grab EPT data if it's available
-        if link['label'] == 'EPT NOAA' or link['altlabel'] == 'Entwine Point Tile JSON file':
+        if link.get('label') == 'EPT NOAA' or link.get('altlabel') == 'Entwine Point Tile JSON file':
             ept_link = link['link']
             ept_data = get_json_info(ept_link)
 
@@ -186,9 +240,7 @@ def process_one(
 
 
 def noaa_info(output_dir: str) -> ItemCollection:
-    noaa_url = f'https://noaa-nos-coastal-lidar-pds.s3.us-east-1.amazonaws.com/laz/dav.json'
-
-    resources = get_json_info(noaa_url)
+    resources = get_resources()
     src_crs = pyproj.CRS.from_user_input(resources['crs']['properties']['name'])
     dst_crs = pyproj.CRS.from_epsg(4326)
     trn = pyproj.Transformer.from_crs(src_crs, dst_crs, always_xy=True)
@@ -260,4 +312,5 @@ def main():
 
     noaa_info(args.stac_directory)
 
-main()
+if __name__ == '__main__':
+    main()
