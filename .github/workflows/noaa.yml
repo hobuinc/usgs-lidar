@@ -2,36 +2,69 @@ name: NOAA STAC
 
 on:
     workflow_dispatch:
+      inputs:
+        dry_run:
+          description: Generate and verify outputs without publishing to S3
+          type: boolean
+          default: false
     schedule:
       - cron: "50 15 * * * "
 
 jobs:
   conda:
-    name: Conda ${{ matrix.python-version }} - ${{ matrix.os }}
+    name: Python ${{ matrix.python-version }} - ${{ matrix.os }}
+
+    permissions:
+      contents: read
 
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: true
       matrix:
         os: ['ubuntu-latest']
-        python-version: ['3.9']
+        python-version: ['3.14']
 
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v4
+    - uses: actions/checkout@v7.0.1
+    - uses: actions/setup-python@v7.1.0
       with:
-        python-version: '3.9'
+        python-version: ${{ matrix.python-version }}
     - name: Install prerequisites
-      shell: bash -l {0}
       run: |
-        pip install 'pystac[validation]' pyproj shapely boto3
+        python -m pip install 'pystac[validation]' pyproj 'shapely>=2.1' boto3 awscli
+        python -m pip check
+        aws --version
+    - name: Test NOAA inventory handling
+      working-directory: action
+      run: python -W error::DeprecationWarning -m unittest discover -s tests -v
     - name: Create NOAA STAC
-      shell: bash -l {0}
       working-directory: action/usgs_boundary
       run: |
         python noaa.py
-        ls noaa_stac/
-        aws s3 sync noaa_stac s3://usgs-lidar-stac/noaa/ --acl public-read --region us-west-2
+    - name: Verify generated NOAA STAC
+      working-directory: action/usgs_boundary
+      run: |
+        python - <<'PY'
+        import json
+        from pathlib import Path
+
+        output = Path('noaa_stac')
+        catalog = json.loads((output / 'catalog.json').read_text())
+        items = json.loads((output / 'noaa_item_collection.json').read_text())
+        links = [link for link in catalog['links'] if link['rel'] == 'item']
+        assert items['features'], 'No NOAA STAC items generated'
+        assert len(links) == len(items['features']), 'Catalog and collection counts differ'
+        errors = list((output / 'errors').glob('*'))
+        assert not errors, f'{len(errors)} NOAA STAC validation errors: {[p.name for p in errors]}'
+        print(f"Generated and validated {len(items['features'])} NOAA STAC items")
+        PY
+    - name: Publish NOAA STAC
+      if: ${{ !inputs.dry_run }}
+      working-directory: action/usgs_boundary
+      run: aws s3 sync noaa_stac s3://usgs-lidar-stac/noaa/ --acl public-read --region us-west-2
       env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
